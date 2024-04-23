@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 from glob import glob
 import os
 
-package_name = 'pid_controllermplate'
+package_name = 'pid_controller'
 
 setup(
     name=package_name,
@@ -16,14 +16,14 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='todo',
-    maintainer_email='todo@todo.com',
+    maintainer='Farraj007',
+    maintainer_email='BarhamFarraj@icloud.com',
     description='TODO: Package description',
     license='GNU General Public License v3.0',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            # 'control_vehicle = pid_controllermplate.control_vehicle:main',
+            # 'control_vehicle = pid_controller.control_vehicle:main',
         ],
     },
 )
