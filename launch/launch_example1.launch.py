@@ -4,29 +4,27 @@ from launch_ros.actions import Node
 def generate_launch_description():
     return LaunchDescription([
         Node(
-            package='turtlesim',
-            namespace='turtlesim1',
-            executable='turtlesim_node',
-            name='sim'
+            package='rviz2',
+            executable='rviz2',
+            name='rviz01',
+            arguments=['-d', '$(find megoldas)/rviz/megoldas1.rviz']
         ),
         Node(
-            package='turtlesim',
-            namespace='turtlesim2',
-            executable='turtlesim_node',
-            name='sim'
+            package='pid_controller',
+            executable='pid_error.py',
+            name='pid_fal_kovetes',
+            output='screen'
         ),
         Node(
-            package='turtlesim',
-            executable='mimic',
-            name='mimic',
-            remappings=[
-                ('/input/pose', '/turtlesim1/turtle1/pose'),
-                ('/output/cmd_vel', '/turtlesim2/turtle1/cmd_vel'),
-            ]
+            package='pid_controller',
+            executable='control.py',
+            name='szabalyzo',
+            output='screen'
         ),
         # Node(
-        #     package='ros2_python_template',
-        #     executable='simple_sub_node',
-        #     output='screen',
-        # ),
+        #     package='rosservice',
+        #     executable='rosservice',
+        #     name='rosservice',
+        #     arguments=['call', '/gazebo/reset_simulation']
+        # )
     ])

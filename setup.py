@@ -24,6 +24,8 @@ setup(
     entry_points={
         'console_scripts': [
             # 'control_vehicle = pid_controller.control_vehicle:main',
+            'pid_error.py = pid_controller.pid_error:main',
+            'control.py = pid_controller.control:main',
         ],
     },
 )
