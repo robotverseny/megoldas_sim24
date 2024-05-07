@@ -111,7 +111,7 @@ class DistFinder(Node):
         #error_center, curr_dist_center = followCenter(data)
         #error = error_center
         
-        msg = PIDInput()
+        msg = PidState()
         msg.pid_error = error
         msg.pid_vel = self.VELOCITY
         self.publisher_error.publish(msg)
