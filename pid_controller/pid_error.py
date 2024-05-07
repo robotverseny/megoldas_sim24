@@ -1,7 +1,8 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
-# from simulator.msg import PIDInput
+#from simulator.msg import PIDInput
+from control_msgs.msg import PidState
 import math
 
 import std_msgs.msg
@@ -9,7 +10,7 @@ import std_msgs.msg
 class DistFinder(Node):
     def __init__(self):
         super().__init__('dist_finder')
-        self.publisher_error = self.create_publisher(PIDInput, 'error', 10)
+        self.publisher_error = self.create_publisher(PidState, 'error', 10)
         self.publisher_pid_data = self.create_publisher(std_msgs.msg.String, 'pid_data', 10)
         self.publisher_kozepiskola = self.create_publisher(std_msgs.msg.String, 'kozepiskola', 10)
         self.subscription = self.create_subscription(LaserScan, 'scan', self.laser_callback, 10)

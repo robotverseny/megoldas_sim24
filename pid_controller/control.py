@@ -2,7 +2,7 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
-# from simulator.msg import PIDInput
+from control_msgs.msg import PidState
 import math
 import numpy as np
 
@@ -24,7 +24,7 @@ class PIDController(Node):
         self.vel_input = 1.0
 
         self.subscription = self.create_subscription(
-            PIDInput,
+            PidState,
             'error',
             self.control,
             1)
