@@ -21,10 +21,10 @@ def generate_launch_description():
             name='szabalyzo',
             output='screen'
         ),
-        # Node(
-        #     package='rosservice',
-        #     executable='rosservice',
-        #     name='rosservice',
-        #     arguments=['call', '/gazebo/reset_simulation']
-        # )
+        Node(
+            package='gazebo_ros',
+            executable='gazebo_ros',
+            name='gazebo_ros',
+            arguments=['service', 'call', '/gazebo/reset_simulation', 'std_srvs/srv/Empty']
+        )
     ])

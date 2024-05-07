@@ -2,6 +2,7 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
+#from simulator.msg import PIDInput
 from control_msgs.msg import PidState
 import math
 import numpy as np
