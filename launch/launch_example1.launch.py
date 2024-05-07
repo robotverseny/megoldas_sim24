@@ -1,4 +1,4 @@
-from launch import LaunchDescription
+from launch import LaunchDescription,actions
 from launch_ros.actions import Node
 
 def generate_launch_description():
@@ -21,10 +21,8 @@ def generate_launch_description():
             name='szabalyzo',
             output='screen'
         ),
-        Node(
-            package='gazebo_ros',
-            executable='gazebo_ros',
-            name='gazebo_ros',
-            arguments=['service', 'call', '/gazebo/reset_simulation', 'std_srvs/srv/Empty']
+        actions.ExecuteProcess(
+            cmd=['ros2', 'service', 'call', '/gazebo/reset_simulation', 'std_srvs/srv/Empty', '{}'],
+            output='screen'
         )
     ])
