@@ -20,7 +20,7 @@ def generate_launch_description():
             executable='control.py',
             name='szabalyzo',
             output='screen'
-        # ),
+        )
         # actions.ExecuteProcess(
         #     cmd=['ros2', 'service', 'call', '/gazebo/reset_simulation', 'std_srvs/srv/Empty', '{}'],
         #     output='screen'
