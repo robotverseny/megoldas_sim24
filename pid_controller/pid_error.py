@@ -1,23 +1,19 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
-#from simulator.msg import PIDInput
-from example_interfaces.srv import SetBool
 from control_msgs.msg import PidState
 import math
-
 import std_msgs.msg
 
 class DistFinder(Node):
     def __init__(self):
         super().__init__('dist_finder')
-        self.activated_ = False
-        # self.service_ = self.create_service(SetBool, "activate_robot", /gazebo/reset_simulation)
+        self.activated_ = True
         self.publisher_error = self.create_publisher(PidState, 'error', 10)
         self.publisher_pid_data = self.create_publisher(std_msgs.msg.String, 'pid_data', 10)
         self.publisher_kozepiskola = self.create_publisher(std_msgs.msg.String, 'kozepiskola', 10)
         self.subscription = self.create_subscription(LaserScan, '/roboworks/scan', self.laser_callback, 10)
-
+    
         self.KOZEPISKOLA_NEVE = "Ismeretlen kozepiskola"
         self.KOZEPISKOLA_AZON = "A00"
         self.ANGLE_RANGE = 270  # Hokuyo 10LX has 270 degrees scan
@@ -28,6 +24,7 @@ class DistFinder(Node):
         # self.message = std_msgs.msg.String()
         # self.message.data = self.KOZEPISKOLA_NEVE + "(" + self.KOZEPISKOLA_AZON + ")"
         # self.publisher_kozepiskola.publish(self.message)
+        self.get_logger().info('init')
 
     
     def getRange(self, data, angle):
@@ -110,7 +107,8 @@ class DistFinder(Node):
         return error, curr_dist2 - curr_dist1
     
     def laser_callback(self, data):
-        
+        self.get_logger().info('callback')
+
         # Does a left wall follow
         #error_left, curr_dist_left = followLeft(data, DESIRED_DISTANCE_LEFT)
         #error = error_left
@@ -128,20 +126,21 @@ class DistFinder(Node):
         self.publisher_error.publish(msg)
 
 def main(args=None):
-    rclpy.init(args=args)
-    
+    rclpy.init(args=args) 
     node = DistFinder()
-    # rclpy.spin(node)
-    # node.destroy_node()
-    # rclpy.shutdown()
-    print("Laser node started")
     node.get_logger().info('Laser node started')
+    rclpy.spin(node)
     rate = node.create_rate(2)  # 2hz
     while rclpy.ok():
+        node.get_logger().info('ok')
+
         message = std_msgs.msg.String()
         message.data = node.KOZEPISKOLA_NEVE + "(" + node.KOZEPISKOLA_AZON + ")"
         node.publisher_kozepiskola.publish(message)
         rate.sleep()
+    print("ok")    
+    node.destroy_node()
+    rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
