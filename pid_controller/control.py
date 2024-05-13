@@ -1,8 +1,7 @@
-
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
-#from simulator.msg import PIDInput
+from std_srvs.srv import SetBool
 from control_msgs.msg import PidState
 import math
 import numpy as np
@@ -29,6 +28,13 @@ class PIDController(Node):
             'error',
             self.control,
             1)
+
+        self.client = self.create_client(SetBool, 'start_control')
+        while not self.client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('waiting for the start_control service to become available')
+        self.request = SetBool.Request()
+        self.request.data = True
+        self.future = self.client.call_async(self.request)
 
     def control(self, data):
         self.integral += data.pid_error
@@ -67,7 +73,7 @@ class PIDController(Node):
             msg.linear.x = velocity
             msg.angular.z = angle
             self.pub.publish(msg)
-
+            
 def main(args=None):
     rclpy.init(args=args)
 
