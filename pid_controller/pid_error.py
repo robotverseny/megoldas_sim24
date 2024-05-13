@@ -2,6 +2,7 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
 #from simulator.msg import PIDInput
+from example_interfaces.srv import SetBool
 from control_msgs.msg import PidState
 import math
 
@@ -10,10 +11,12 @@ import std_msgs.msg
 class DistFinder(Node):
     def __init__(self):
         super().__init__('dist_finder')
+        self.activated_ = False
+        # self.service_ = self.create_service(SetBool, "activate_robot", /gazebo/reset_simulation)
         self.publisher_error = self.create_publisher(PidState, 'error', 10)
         self.publisher_pid_data = self.create_publisher(std_msgs.msg.String, 'pid_data', 10)
         self.publisher_kozepiskola = self.create_publisher(std_msgs.msg.String, 'kozepiskola', 10)
-        self.subscription = self.create_subscription(LaserScan, 'scan', self.laser_callback, 10)
+        self.subscription = self.create_subscription(LaserScan, '/roboworks/scan', self.laser_callback, 10)
 
         self.KOZEPISKOLA_NEVE = "Ismeretlen kozepiskola"
         self.KOZEPISKOLA_AZON = "A00"
@@ -22,7 +25,11 @@ class DistFinder(Node):
         self.DESIRED_DISTANCE_LEFT = 0.8  # 0.55
         self.VELOCITY = 1.00  # meters per second
         self.CAR_LENGTH = 0.50  # 0.5 meters
+        # self.message = std_msgs.msg.String()
+        # self.message.data = self.KOZEPISKOLA_NEVE + "(" + self.KOZEPISKOLA_AZON + ")"
+        # self.publisher_kozepiskola.publish(self.message)
 
+    
     def getRange(self, data, angle):
         # data: single message from topic /scan
         # angle: between -45 to 225 degrees, where 0 degrees is directly to the right
@@ -42,6 +49,8 @@ class DistFinder(Node):
         # desired_trajetory: desired distance to the right wall [meters]
         messageS1 = std_msgs.msg.String()
         messageS1.data = "Jobb oldal kovetes"
+        self.get_logger().info('follow right')
+
         a = self.getRange(data, 60)
         b = self.getRange(data, 0)
         swing = math.radians(60)
@@ -55,6 +64,7 @@ class DistFinder(Node):
         error = desired_trajectory - future_dist
 
         messageS1.data += "\nCurrent Distance Left: %.2f" % (curr_dist)
+        print(messageS1)
         self.publisher_pid_data.publish(messageS1)
         return error, curr_dist
     def followLeft(self, data, desired_trajectory):
@@ -78,6 +88,7 @@ class DistFinder(Node):
         # data: single message from topic /scan
         messageS1 = std_msgs.msg.String()
         messageS1.data = "Kozepvonal kovetes"
+        self.get_logger().info('followcenter')
 
         a = self.getRange(data, 120)
         b = self.getRange(data, 179.9)
@@ -118,6 +129,7 @@ class DistFinder(Node):
 
 def main(args=None):
     rclpy.init(args=args)
+    
     node = DistFinder()
     # rclpy.spin(node)
     # node.destroy_node()
