@@ -10,7 +10,7 @@ class PIDController(Node):
     def __init__(self):
         super().__init__('pid_controller')
 
-        self.pub = self.create_publisher(Twist, 'cmd_vel', 1)
+        self.pub = self.create_publisher(Twist, 'roboworks/cmd_vel', 1)
 
         self.kp = 10
         self.kd = 0.01

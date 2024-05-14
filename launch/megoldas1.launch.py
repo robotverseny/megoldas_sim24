@@ -7,7 +7,7 @@ def generate_launch_description():
             package='rviz2',
             executable='rviz2',
             name='rviz01',
-            arguments=['-d', '/rviz/megoldas1.rviz']
+            arguments=['-d', '$(find megoldas)/rviz/megoldas1.rviz']
         ),
         Node(
             package='pid_controller',

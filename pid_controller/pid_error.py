@@ -24,7 +24,6 @@ class DistFinder(Node):
         # self.message = std_msgs.msg.String()
         # self.message.data = self.KOZEPISKOLA_NEVE + "(" + self.KOZEPISKOLA_AZON + ")"
         # self.publisher_kozepiskola.publish(self.message)
-        self.get_logger().info('init')
 
     
     def getRange(self, data, angle):
@@ -46,7 +45,6 @@ class DistFinder(Node):
         # desired_trajetory: desired distance to the right wall [meters]
         messageS1 = std_msgs.msg.String()
         messageS1.data = "Jobb oldal kovetes"
-        self.get_logger().info('follow right')
 
         a = self.getRange(data, 60)
         b = self.getRange(data, 0)
@@ -61,7 +59,6 @@ class DistFinder(Node):
         error = desired_trajectory - future_dist
 
         messageS1.data += "\nCurrent Distance Left: %.2f" % (curr_dist)
-        print(messageS1)
         self.publisher_pid_data.publish(messageS1)
         return error, curr_dist
     def followLeft(self, data, desired_trajectory):
@@ -81,11 +78,11 @@ class DistFinder(Node):
         messageS1.data += "\nCurrent Distance Left: %.2f" % (curr_dist)
         self.publisher_pid_data.publish(messageS1)
         return error, curr_dist
+    
     def followCenter(self, data):
         # data: single message from topic /scan
         messageS1 = std_msgs.msg.String()
         messageS1.data = "Kozepvonal kovetes"
-        self.get_logger().info('followcenter')
 
         a = self.getRange(data, 120)
         b = self.getRange(data, 179.9)
@@ -107,7 +104,6 @@ class DistFinder(Node):
         return error, curr_dist2 - curr_dist1
     
     def laser_callback(self, data):
-        self.get_logger().info('callback')
 
         # Does a left wall follow
         #error_left, curr_dist_left = followLeft(data, DESIRED_DISTANCE_LEFT)
@@ -132,13 +128,11 @@ def main(args=None):
     rclpy.spin(node)
     rate = node.create_rate(2)  # 2hz
     while rclpy.ok():
-        node.get_logger().info('ok')
 
         message = std_msgs.msg.String()
         message.data = node.KOZEPISKOLA_NEVE + "(" + node.KOZEPISKOLA_AZON + ")"
         node.publisher_kozepiskola.publish(message)
         rate.sleep()
-    print("ok")    
     node.destroy_node()
     rclpy.shutdown()
 
