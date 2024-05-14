@@ -104,17 +104,17 @@ class DistFinder(Node):
         return error, curr_dist2 - curr_dist1
     
     def laser_callback(self, data):
+        global error
 
         # Does a left wall follow
-        #error_left, curr_dist_left = followLeft(data, DESIRED_DISTANCE_LEFT)
+        #error_left, curr_dist_left = self.followLeft(data, self.DESIRED_DISTANCE_LEFT)
         #error = error_left
-        global error
-        error_right, curr_dist_right = self.followRight(data, self.DESIRED_DISTANCE_RIGHT)
-        error = error_right
+        # error_right, curr_dist_right = self.followRight(data, self.DESIRED_DISTANCE_RIGHT)
+        # error = error_right
 
         # This is code bock for center wall follow
-        #error_center, curr_dist_center = followCenter(data)
-        #error = error_center
+        error_center, curr_dist_center = self.followCenter(data)
+        error = error_center
         
         msg = PidState()
         msg.p_error = error
