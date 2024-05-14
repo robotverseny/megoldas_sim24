@@ -112,7 +112,7 @@ class DistFinder(Node):
         # Does a left wall follow
         #error_left, curr_dist_left = followLeft(data, DESIRED_DISTANCE_LEFT)
         #error = error_left
-        
+        global error
         error_right, curr_dist_right = self.followRight(data, self.DESIRED_DISTANCE_RIGHT)
         error = error_right
 
@@ -121,8 +121,8 @@ class DistFinder(Node):
         #error = error_center
         
         msg = PidState()
-        msg.pid_error = error
-        msg.pid_vel = self.VELOCITY
+        msg.p_error = error
+        msg.p_term = self.VELOCITY
         self.publisher_error.publish(msg)
 
 def main(args=None):

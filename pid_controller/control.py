@@ -2,11 +2,9 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
-#from simulator.msg import PIDInput
 from control_msgs.msg import PidState
 import math
 import numpy as np
-from std_srvs.srv import SetBool
 
 class PIDController(Node):
     def __init__(self):
@@ -38,15 +36,15 @@ class PIDController(Node):
         # self.future = self.client.call_async(self.request)
 
     def control(self, data):
-        self.integral += data.pid_error
-        self.error = 5*data.pid_error
+        self.integral += data.p_error
+        self.error = 5*data.p_error
 
         if self.error != 0.0:
             control_error = self.kp*self.error + self.kd*(self.error - self.prev_error)
             angle = self.servo_offset + control_error*np.pi/180
 
             control_error_vel = self.kp_vel*self.error + self.kd_vel*(self.error - self.prev_error)
-            velocity = data.pid_vel + abs(control_error_vel)
+            velocity = data.p_term + abs(control_error_vel)
 
             self.prev_error = self.error
 
