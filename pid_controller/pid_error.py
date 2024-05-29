@@ -4,6 +4,7 @@ from sensor_msgs.msg import LaserScan
 from control_msgs.msg import PidState
 import math
 import std_msgs.msg
+from visualization_msgs.msg import Marker,MarkerArray
 
 class DistFinder(Node):
     def __init__(self):
@@ -21,6 +22,7 @@ class DistFinder(Node):
         self.DESIRED_DISTANCE_LEFT = 0.8  # 0.55
         self.VELOCITY = 1.00  # meters per second
         self.CAR_LENGTH = 0.50  # 0.5 meters
+        self.marker_array_pub = self.create_publisher(MarkerArray, 'visualization_marker_array', 10)
         # self.message = std_msgs.msg.String()
         # self.message.data = self.KOZEPISKOLA_NEVE + "(" + self.KOZEPISKOLA_AZON + ")"
         # self.publisher_kozepiskola.publish(self.message)
@@ -80,11 +82,8 @@ class DistFinder(Node):
         return error, curr_dist
     
     def followCenter(self, data):
-        # data: single message from topic /scan
         messageS1 = std_msgs.msg.String()
-        messageS1.data = "Kozepvonal kovetes"
-
-        a = self.getRange(data, 120)
+        a = self.getRange(data, 119.9)
         b = self.getRange(data, 179.9)
         swing = math.radians(60)
         alpha = -math.atan((a * math.cos(swing) - b) / (a * math.sin(swing)))
@@ -98,11 +97,55 @@ class DistFinder(Node):
         curr_dist2 = b * math.cos(alpha)
         future_dist2 = curr_dist2 + self.CAR_LENGTH * math.sin(alpha)
 
+        # Create and publish the markers
+        self.create_and_publish_markers(curr_dist1, future_dist1, curr_dist2, future_dist2)
+
         error = future_dist1 - future_dist2
         messageS1.data += "\nError: %.2f" % error
         self.publisher_kozepiskola.publish(messageS1)
         return error, curr_dist2 - curr_dist1
-    
+    def create_and_publish_markers(self, curr_dist1, future_dist1, curr_dist2, future_dist2):
+    # Create a MarkerArray
+        marker_array = MarkerArray()
+
+        # Create markers for the current and future distances on the left side
+        marker1 = Marker()
+        marker1.header.frame_id = "/base_link"
+        marker1.type = marker1.SPHERE
+        marker1.action = marker1.ADD
+        marker1.scale.x = 0.1
+        marker1.scale.y = 0.1
+        marker1.scale.z = 0.1
+        marker1.color.a = 1.0
+        marker1.color.r = 1.0
+        marker1.color.g = 0.0
+        marker1.color.b = 0.0
+        marker1.pose.position.x = curr_dist1
+        marker1.pose.position.y = future_dist1
+        marker1.pose.position.z = 0
+        marker1.header.stamp = self.get_clock().now().to_msg()
+        marker_array.markers.append(marker1)
+
+        # Create markers for the current and future distances on the right side
+        marker2 = Marker()
+        marker2.header.frame_id = "/base_link"
+        marker2.type = marker2.SPHERE
+        marker2.action = marker2.ADD
+        marker2.scale.x = 0.1
+        marker2.scale.y = 0.1
+        marker2.scale.z = 0.1
+        marker2.color.a = 1.0
+        marker2.color.r = 0.0
+        marker2.color.g = 1.0
+        marker2.color.b = 0.0
+        marker2.pose.position.x = curr_dist2
+        marker2.pose.position.y = future_dist2
+        marker2.pose.position.z = 0
+        marker2.header.stamp = self.get_clock().now().to_msg()
+        marker_array.markers.append(marker2)
+
+        # Publish the MarkerArray
+        self.marker_array_pub.publish(marker_array)
     def laser_callback(self, data):
         global error
 
@@ -128,7 +171,6 @@ def main(args=None):
     rclpy.spin(node)
     rate = node.create_rate(2)  # 2hz
     while rclpy.ok():
-
         message = std_msgs.msg.String()
         message.data = node.KOZEPISKOLA_NEVE + "(" + node.KOZEPISKOLA_AZON + ")"
         node.publisher_kozepiskola.publish(message)

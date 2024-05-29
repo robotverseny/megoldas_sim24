@@ -5,6 +5,7 @@ from geometry_msgs.msg import Twist
 from control_msgs.msg import PidState
 import math
 import numpy as np
+import time
 
 class PIDController(Node):
     def __init__(self):
@@ -20,23 +21,15 @@ class PIDController(Node):
         self.servo_offset = 18.0*math.pi/180
         self.prev_error = 0.0
         self.error = 0.0
-        self.integral = 0.0
         self.vel_input = 1.0
 
         self.subscription = self.create_subscription(
             PidState,
             'error',
-            self.control,
-            1)
-        # self.client = self.create_client(SetBool, 'pid_controller')
-        # while not self.client.wait_for_service(timeout_sec=1.0):
-        #     self.get_logger().info('waiting for the pid_controller service to become available')
-        # self.request = SetBool.Request()
-        # self.request.data = True
-        # self.future = self.client.call_async(self.request)
+            self.control)
+        
 
     def control(self, data):
-        self.integral += data.p_error
         self.error = 5*data.p_error
 
         if self.error != 0.0:
@@ -72,6 +65,7 @@ class PIDController(Node):
             msg.linear.x = velocity
             msg.angular.z = angle
             self.pub.publish(msg)
+           
 
 def main(args=None):
     rclpy.init(args=args)
