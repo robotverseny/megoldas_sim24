@@ -23,11 +23,12 @@ class DistFinder(Node):
         self.VELOCITY = 1.00  # meters per second
         self.CAR_LENGTH = 0.50  # 0.5 meters
         self.marker_array_pub = self.create_publisher(MarkerArray, 'visualization_marker_array', 10)
-        # self.message = std_msgs.msg.String()
-        # self.message.data = self.KOZEPISKOLA_NEVE + "(" + self.KOZEPISKOLA_AZON + ")"
-        # self.publisher_kozepiskola.publish(self.message)
+        self.message = std_msgs.msg.String()
+        self.message.data = self.KOZEPISKOLA_NEVE + "(" + self.KOZEPISKOLA_AZON + ")"
+        self.publisher_kozepiskola.publish(self.message)
 
     
+
     def getRange(self, data, angle):
         # data: single message from topic /scan
         # angle: between -45 to 225 degrees, where 0 degrees is directly to the right
@@ -40,6 +41,32 @@ class DistFinder(Node):
             return 10.0
         if math.isnan(dist):
             return 4.0
+
+        # Create a MarkerArray
+        marker_array = MarkerArray()
+
+        # Add all points to the MarkerArray
+        for i, range in enumerate(data.ranges):
+            marker = Marker()
+            marker.header.frame_id = "/base_link"
+            marker.type = marker.SPHERE
+            marker.action = marker.ADD
+            marker.scale.x = 0.1
+            marker.scale.y = 0.1
+            marker.scale.z = 0.1
+            marker.color.a = 1.0
+            marker.color.r = 1.0 if i < len(data.ranges) / 2 else 0.0  # Color the left side red and the right side green
+            marker.color.g = 0.0 if i < len(data.ranges) / 2 else 1.0
+            marker.color.b = 0.0
+            marker.pose.position.x = range * math.cos(i * data.angle_increment)
+            marker.pose.position.y = range * math.sin(i * data.angle_increment)
+            marker.pose.position.z = 0
+            marker.header.stamp = self.get_clock().now().to_msg()
+            marker_array.markers.append(marker)
+
+        # Publish the MarkerArray
+        self.marker_pub.publish(marker_array)
+
         return data.ranges[int(index)]
 
     def followRight(self, data, desired_trajectory):
@@ -96,56 +123,52 @@ class DistFinder(Node):
         alpha = math.atan((a * math.cos(swing) - b) / (a * math.sin(swing)))
         curr_dist2 = b * math.cos(alpha)
         future_dist2 = curr_dist2 + self.CAR_LENGTH * math.sin(alpha)
-
-        # Create and publish the markers
-        self.create_and_publish_markers(curr_dist1, future_dist1, curr_dist2, future_dist2)
-
         error = future_dist1 - future_dist2
         messageS1.data += "\nError: %.2f" % error
         self.publisher_kozepiskola.publish(messageS1)
         return error, curr_dist2 - curr_dist1
-    def create_and_publish_markers(self, curr_dist1, future_dist1, curr_dist2, future_dist2):
-    # Create a MarkerArray
-        marker_array = MarkerArray()
+    # def create_and_publish_markers(self, curr_dist1, future_dist1, curr_dist2, future_dist2):
+    # # Create a MarkerArray
+    #     marker_array = MarkerArray()
 
-        # Create markers for the current and future distances on the left side
-        marker1 = Marker()
-        marker1.header.frame_id = "/base_link"
-        marker1.type = marker1.SPHERE
-        marker1.action = marker1.ADD
-        marker1.scale.x = 0.1
-        marker1.scale.y = 0.1
-        marker1.scale.z = 0.1
-        marker1.color.a = 1.0
-        marker1.color.r = 1.0
-        marker1.color.g = 0.0
-        marker1.color.b = 0.0
-        marker1.pose.position.x = curr_dist1
-        marker1.pose.position.y = future_dist1
-        marker1.pose.position.z = 0
-        marker1.header.stamp = self.get_clock().now().to_msg()
-        marker_array.markers.append(marker1)
+    #     # Create markers for the current and future distances on the left side
+    #     marker1 = Marker()
+    #     marker1.header.frame_id = "/base_link"
+    #     marker1.type = marker1.SPHERE
+    #     marker1.action = marker1.ADD
+    #     marker1.scale.x = 0.1
+    #     marker1.scale.y = 0.1
+    #     marker1.scale.z = 0.1
+    #     marker1.color.a = 1.0
+    #     marker1.color.r = 1.0
+    #     marker1.color.g = 0.0
+    #     marker1.color.b = 0.0
+    #     marker1.pose.position.x = curr_dist1
+    #     marker1.pose.position.y = future_dist1
+    #     marker1.pose.position.z = 0
+    #     marker1.header.stamp = self.get_clock().now().to_msg()
+    #     marker_array.markers.append(marker1)
 
-        # Create markers for the current and future distances on the right side
-        marker2 = Marker()
-        marker2.header.frame_id = "/base_link"
-        marker2.type = marker2.SPHERE
-        marker2.action = marker2.ADD
-        marker2.scale.x = 0.1
-        marker2.scale.y = 0.1
-        marker2.scale.z = 0.1
-        marker2.color.a = 1.0
-        marker2.color.r = 0.0
-        marker2.color.g = 1.0
-        marker2.color.b = 0.0
-        marker2.pose.position.x = curr_dist2
-        marker2.pose.position.y = future_dist2
-        marker2.pose.position.z = 0
-        marker2.header.stamp = self.get_clock().now().to_msg()
-        marker_array.markers.append(marker2)
+    #     # Create markers for the current and future distances on the right side
+    #     marker2 = Marker()
+    #     marker2.header.frame_id = "/base_link"
+    #     marker2.type = marker2.SPHERE
+    #     marker2.action = marker2.ADD
+    #     marker2.scale.x = 0.1
+    #     marker2.scale.y = 0.1
+    #     marker2.scale.z = 0.1
+    #     marker2.color.a = 1.0
+    #     marker2.color.r = 0.0
+    #     marker2.color.g = 1.0
+    #     marker2.color.b = 0.0
+    #     marker2.pose.position.x = curr_dist2
+    #     marker2.pose.position.y = future_dist2
+    #     marker2.pose.position.z = 0
+    #     marker2.header.stamp = self.get_clock().now().to_msg()
+    #     marker_array.markers.append(marker2)
 
-        # Publish the MarkerArray
-        self.marker_array_pub.publish(marker_array)
+    #     # Publish the MarkerArray
+    #     self.marker_array_pub.publish(marker_array)
     def laser_callback(self, data):
         global error
 
@@ -169,12 +192,6 @@ def main(args=None):
     node = DistFinder()
     node.get_logger().info('Laser node started')
     rclpy.spin(node)
-    rate = node.create_rate(2)  # 2hz
-    while rclpy.ok():
-        message = std_msgs.msg.String()
-        message.data = node.KOZEPISKOLA_NEVE + "(" + node.KOZEPISKOLA_AZON + ")"
-        node.publisher_kozepiskola.publish(message)
-        rate.sleep()
     node.destroy_node()
     rclpy.shutdown()
 
