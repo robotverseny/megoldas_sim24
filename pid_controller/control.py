@@ -5,7 +5,6 @@ from geometry_msgs.msg import Twist
 from control_msgs.msg import PidState
 import math
 import numpy as np
-import time
 
 class PIDController(Node):
     def __init__(self):
@@ -13,8 +12,8 @@ class PIDController(Node):
 
         self.pub = self.create_publisher(Twist, 'roboworks/cmd_vel', 1)
 
-        self.kp = 10
-        self.kd = 0.01
+        self.kp = 9.5
+        self.kd = 0.5
         self.kp_vel = 42.0
         self.kd_vel = 0.0
         self.ki = 0.0
@@ -26,7 +25,7 @@ class PIDController(Node):
         self.subscription = self.create_subscription(
             PidState,
             'error',
-            self.control)
+            self.control,1)
         
 
     def control(self, data):
@@ -35,16 +34,16 @@ class PIDController(Node):
         if self.error != 0.0:
             control_error = self.kp*self.error + self.kd*(self.error - self.prev_error)
             angle = self.servo_offset + control_error*np.pi/180
-
+            #angle=np.clip(angle, -1, 1)
             control_error_vel = self.kp_vel*self.error + self.kd_vel*(self.error - self.prev_error)
             velocity = data.p_term + abs(control_error_vel)
 
             self.prev_error = self.error
 
             if angle > 30*np.pi/180:
-                angle = 30*np.pi/180
+                angle = 30*np.pi/180 *2
             if angle < -30*np.pi/180:
-                angle = -30*np.pi/180
+                angle = -30*np.pi/180 *2
 
             if angle >= 10*np.pi/180 or angle <= -10*np.pi/180:
                 velocity = 0.8

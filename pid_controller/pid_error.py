@@ -5,6 +5,7 @@ from control_msgs.msg import PidState
 import math
 import std_msgs.msg
 from visualization_msgs.msg import Marker,MarkerArray
+from builtin_interfaces.msg import Duration
 
 class DistFinder(Node):
     def __init__(self):
@@ -18,11 +19,12 @@ class DistFinder(Node):
         self.KOZEPISKOLA_NEVE = "Ismeretlen kozepiskola"
         self.KOZEPISKOLA_AZON = "A00"
         self.ANGLE_RANGE = 270  # Hokuyo 10LX has 270 degrees scan
-        self.DESIRED_DISTANCE_RIGHT = 1.0  # 0.9 meters
-        self.DESIRED_DISTANCE_LEFT = 0.8  # 0.55
-        self.VELOCITY = 1.00  # meters per second
-        self.CAR_LENGTH = 0.50  # 0.5 meters
-        self.marker_array_pub = self.create_publisher(MarkerArray, 'visualization_marker_array', 10)
+        self.DESIRED_DISTANCE_RIGHT = 0.5  # 0.9 meters
+        self.DESIRED_DISTANCE_LEFT = 0.5  # 0.55
+        self.VELOCITY = 35.00  # meters per second
+        self.CAR_LENGTH = 0.455  # 0.5 meters
+        self.marker_pub = self.create_publisher(MarkerArray, 'marker_array', 10)
+        
         self.message = std_msgs.msg.String()
         self.message.data = self.KOZEPISKOLA_NEVE + "(" + self.KOZEPISKOLA_AZON + ")"
         self.publisher_kozepiskola.publish(self.message)
@@ -48,7 +50,8 @@ class DistFinder(Node):
         # Add all points to the MarkerArray
         for i, range in enumerate(data.ranges):
             marker = Marker()
-            marker.header.frame_id = "/base_link"
+            marker.header.frame_id = "/roboworks/odom"
+            marker.id=i
             marker.type = marker.SPHERE
             marker.action = marker.ADD
             marker.scale.x = 0.1
@@ -60,8 +63,9 @@ class DistFinder(Node):
             marker.color.b = 0.0
             marker.pose.position.x = range * math.cos(i * data.angle_increment)
             marker.pose.position.y = range * math.sin(i * data.angle_increment)
-            marker.pose.position.z = 0
+            marker.pose.position.z = 0.0
             marker.header.stamp = self.get_clock().now().to_msg()
+            marker.lifetime = Duration(sec=1)
             marker_array.markers.append(marker)
 
         # Publish the MarkerArray
@@ -89,6 +93,7 @@ class DistFinder(Node):
 
         messageS1.data += "\nCurrent Distance Left: %.2f" % (curr_dist)
         self.publisher_pid_data.publish(messageS1)
+        
         return error, curr_dist
     def followLeft(self, data, desired_trajectory):
         # data: single message from topic /scan
