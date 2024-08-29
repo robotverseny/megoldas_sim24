@@ -18,7 +18,65 @@ class DistFinder(Node):
     
         self.KOZEPISKOLA_NEVE = "Ismeretlen kozepiskola"
         self.KOZEPISKOLA_AZON = "A00"
-        self.ANGLE_RANGE = 270  # Hokuyo 10LX has 270 degrees scan
+        self.ANGLE_RANGE = 270
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        # Hokuyo 10LX has 270 degrees scan
         self.DESIRED_DISTANCE_RIGHT = 0.5  # 0.9 meters
         self.DESIRED_DISTANCE_LEFT = 0.5  # 0.55
         self.VELOCITY = 35.00  # meters per second
