@@ -1,0 +1,18 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/farraj/ros2_ws/build/task",
+        "/home/farraj/ros2_ws/install/task/lib/python3.10/site-packages",
+        "/home/farraj/ros2_ws/build/pid_controller",
+        "/home/farraj/ros2_ws/install/pid_controller/lib/python3.10/site-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/farraj/ros2_ws/build/task",
+        "/home/farraj/ros2_ws/install/task/lib/python3.10/site-packages",
+        "/home/farraj/ros2_ws/build/pid_controller",
+        "/home/farraj/ros2_ws/install/pid_controller/lib/python3.10/site-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ]
+}

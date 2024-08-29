@@ -13,7 +13,7 @@ class PIDController(Node):
         self.pub = self.create_publisher(Twist, 'roboworks/cmd_vel', 1)
 
         self.kp = 9.5
-        self.kd = 0.5
+        self.kd = 0.0
         self.kp_vel = 42.0
         self.kd_vel = 0.0
         self.ki = 0.0
@@ -52,7 +52,7 @@ class PIDController(Node):
                 velocity = 0.3
 
             if angle >= -1*np.pi/180 and angle <= 1*np.pi/180:
-                velocity = 2.0
+                velocity = 3.0
 
             if velocity < 0:
                 velocity = 1

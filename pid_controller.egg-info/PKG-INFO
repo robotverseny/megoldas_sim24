@@ -1,0 +1,9 @@
+Metadata-Version: 2.1
+Name: pid_controller
+Version: 0.0.0
+Summary: TODO: Package description
+Maintainer: Farraj007
+Maintainer-email: BarhamFarraj@icloud.com
+License: GNU General Public License v3.0
+License-File: LICENSE
+Requires-Dist: setuptools

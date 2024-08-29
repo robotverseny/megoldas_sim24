@@ -1,0 +1,3 @@
+[console_scripts]
+control.py = pid_controller.control:main
+pid_error.py = pid_controller.pid_error:main
