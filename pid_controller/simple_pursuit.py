@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 '''
 based on 2018 Varundev Suresh Babu (University of Virginia)
                 MIT License
@@ -31,7 +30,7 @@ class SimplePursuit(Node):
         self.pubst1 = self.create_publisher(String, 'pid_data', 10)
         self.pubst2 = self.create_publisher(String, 'kozepiskola', 10)
         self.marker_pub = self.create_publisher(Marker, '/debug_marker', 1)
-        self.sub = self.create_subscription(LaserScan, 'roboworks/scan', self.callbackLaser, 10)
+        self.sub = self.create_subscription(LaserScan, 'roboworks/scan', self.callbackLaser, 1)
         self.prev_steering_err = 0.0
         self.prev_velocity = 0.0
         self.trans = Transform()
@@ -53,11 +52,14 @@ class SimplePursuit(Node):
         self.first_run = True
         self.buf = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.buf, self)
-        self.timer = self.create_timer(0.5, self.timer_callback)
+        self.timer = self.create_timer(0.1, self.timer_callback)
 
     def calcPursuitAngle(self, goal_x, goal_y):
+        print("goal_x ", goal_x, " goal_y ", goal_y)
         alpha = math.atan2(goal_y, goal_x)
         lookahead_distance = math.sqrt(pow(goal_x, 2) + pow(goal_y, 2))
+        print("alpha done ", alpha)
+        print("lookahead done ", lookahead_distance)
         steering_angle = math.atan2(2.0 * WHEELBASE * np.sin(alpha) / (lookahead_distance), 1)
         return steering_angle
 
@@ -66,26 +68,17 @@ class SimplePursuit(Node):
         y1 = range * math.sin(angle)
         return x1, y1
 
-
     def getDistance(self, ranges, angles):
         if(len(ranges) > 50):
-            center1_min_index = np.where(math.radians(-20) < angles)[0][0]
-            center1_max_index = np.where(math.radians(0) > angles)[0][0]
-            tmp1 = np.arange(center1_min_index, center1_max_index, 1)
-            center2_min_index = np.where(math.radians(0) < angles)[0][0]
-            center2_max_index = np.where(math.radians(20) < angles)[0][0]
-            tmp2 = np.arange(center2_min_index, center2_max_index, 1)
-            tmp=np.concatenate((tmp1, tmp2))
             max_x = 10.0
-            # lookup_data = np.arange(0, len(ranges), 1) 
-            # lookup_right_min= np.where(math.radians(0) < angles)[0][0]
-            # lookup_right_max= np.where(math.radians(-20)  < angles)[0][0]
-            # lookup_right= np.arange(lookup_right_min, lookup_right_max,1)
-            # lookup_left_min= np.where(math.radians(0) < angles)[0][0]
-            # lookup_left_max= np.where(math.radians(20)  < angles)[0][0]
-            # lookup_left= np.arange(lookup_left_min, lookup_left_max,1)
-            # lookup = np.concatenate(lookup_right, lookup_left)
-            for t in tmp:
+            lookup_right_min= np.where(math.radians(20) < angles)[0][0]
+            lookup_right_max= np.where(math.radians(0.1)  < angles)[0][0]
+            lookup_right= np.arange(lookup_right_min, lookup_right_max,1)
+            lookup_left_min= np.where(math.radians(-0.1) < angles)[0][0]
+            lookup_left_max= np.where(math.radians(20)  < angles)[0][0]
+            lookup_left= np.arange(lookup_left_min, lookup_left_max,1)
+            lookup = np.concatenate((lookup_right, lookup_left))
+            for t in lookup:
                 point = Point()
                 point.x, point.y = self.calcPointPos(ranges[t], angles[t])
                 if not math.isinf(point.x):
@@ -98,7 +91,7 @@ class SimplePursuit(Node):
                 max_x = -0.5
             distance = max_x
         else: 
-            distance = 0.4
+            distance = -0.4
         return distance
 
     def getAngle(self, ranges, angles):
@@ -140,19 +133,19 @@ class SimplePursuit(Node):
             left_d = -99.0
             right_d = 99.0
 
-        print(f"Angle: {angle}, Left Distance: {left_d}, Right Distance: {right_d}")
         return angle, left_d, right_d
 
     def followSimple(self, data):
         messageS1 = String()
-        messageS1.data = "Egyszeru_pursuit"
+        messageS1.data = "Simple_pursuit"
         angles = np.arange(data.angle_min, data.angle_max, data.angle_increment)
+        print("angles", angles)
         if (len(angles) - len(data.ranges) != 0):
             self.get_logger().warn("angles and ranges length differ")
 
         target_distance = self.getDistance(data.ranges, angles)
+        print("target_distance", target_distance)
         target_angle, left_d, right_d = self.getAngle(data.ranges, angles)
-        
 
         point = Point()
         point.x = target_distance
@@ -161,10 +154,14 @@ class SimplePursuit(Node):
         point_st.point = point
 
         try:
+            print("Transforming point",self.trans," to base_link", point_st)
             point_base_link_frame = tf2_geometry_msgs.do_transform_point(point_st, self.trans)
+            print("Transformed point")
             point_base_link_frame.point.x *= -0.9
+            print(f"Point: {point_base_link_frame.point.x}, {point_base_link_frame.point.y}")
             self.marker_points.points.append(point_base_link_frame.point)
         except:
+            print("Error in transforming point")
             pass
 
         self.marker_pub.publish(self.marker_points)
@@ -173,6 +170,7 @@ class SimplePursuit(Node):
         messageS1.data += "\nr: %.1f l: %.1f" % (right_d, left_d) 
         messageS1.data += "\nforward_d: %.1f" % (target_distance)
         velocity = -1.0 * target_distance
+        
         try:
             steering_err = self.calcPursuitAngle(point_base_link_frame.point.x, point_base_link_frame.point.y)
         except:
