@@ -5,7 +5,7 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package='pid_controller',
-            executable='simple_pursuit.py',
+            executable='test.py',
             name='pid_fal_kovetes',
             output='screen'
         ),
