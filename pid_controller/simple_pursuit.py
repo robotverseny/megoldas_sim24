@@ -166,7 +166,7 @@ class SimplePursuit(Node):
         point_st.point = point
         try:
             point_base_link_frame = tf2_geometry_msgs.do_transform_point(point_st, self.trans)
-            # print("transformed point", point_base_link_frame)
+            print("transformed point", point_base_link_frame)
             point_base_link_frame.point.x *= -0.1
             self.marker_points.points.append(point_base_link_frame.point)
         except:
