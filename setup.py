@@ -27,6 +27,7 @@ setup(
             'pid_error.py = pid_controller.pid_error:main',
             'control.py = pid_controller.control:main',
             'simple_pursuit.py = pid_controller.simple_pursuit:main',
+            'test.py = pid_controller.test:main'
         ],
     },
 )
