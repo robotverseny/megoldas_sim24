@@ -1,4 +1,4 @@
-# `pid_controller` package
+# `megoldas_sim24` package
 ROS 2 python package.  [![Static Badge](https://img.shields.io/badge/ROS_2-Humble-34aec5)](https://docs.ros.org/en/humble/)
 ## Packages and build
 
@@ -8,8 +8,15 @@ It is assumed that the workspace is `~/ros2_ws/`.
 ``` r
 cd ~/ros2_ws/src
 ```
+
 ``` r
-git clone https://github.com/Farraj007/pid_controller
+git clone https://github.com/robotverseny/megoldas_sim24
+```
+
+## Rviz 2d overlay
+
+``` r
+sudo apt install ros-humble-rviz-2d-overlay*
 ```
 
 ### Build ROS 2 packages
@@ -17,7 +24,7 @@ git clone https://github.com/Farraj007/pid_controller
 cd ~/ros2_ws
 ```
 ``` r
-colcon build --packages-select pid_controller --symlink-install
+colcon build --packages-select megoldas_sim24 --symlink-install
 ```
 
 <details>
@@ -29,5 +36,9 @@ source ~/ros2_ws/install/setup.bash
 </details>
 
 ``` r
-ros2 launch pid_controller megoldas1.launch.py
+ros2 launch megoldas_sim24 megoldas1.launch.py
+```
+
+``` r
+ros2 run megoldas_sim24 simple_pursuit.py
 ```

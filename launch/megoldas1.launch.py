@@ -4,9 +4,8 @@ from launch_ros.actions import Node
 def generate_launch_description():
     return LaunchDescription([
         Node(
-            package='pid_controller',
+            package='megoldas_sim24',
             executable='simple_pursuit.py',
-            name='pid_fal_kovetes',
             output='screen'
         ),
         

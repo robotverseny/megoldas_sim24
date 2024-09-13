@@ -9,7 +9,7 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist, Point, PointStamped, Transform
-from visualization_msgs.msg import Marker
+from visualization_msgs.msg import MarkerArray, Marker
 from std_msgs.msg import String
 import tf2_ros
 import tf2_geometry_msgs
@@ -27,45 +27,64 @@ class SimplePursuit(Node):
     def __init__(self):
         super().__init__('simple_pursuit')
         self.pub = self.create_publisher(Twist, 'roboworks/cmd_vel', 1)
-        self.pubst1 = self.create_publisher(String, 'pid_data', 10)
+        self.pubst1 = self.create_publisher(String, 'control_state', 10)
         self.pubst2 = self.create_publisher(String, 'kozepiskola', 10)
-        self.marker_pub_left = self.create_publisher(Marker, '/debug_marker_left', 1)
-        self.marker_pub_right = self.create_publisher(Marker, '/debug_marker_right', 1)
+        self.debug_marker_pub = self.create_publisher(MarkerArray, '/debug_marker', 1)
         self.sub = self.create_subscription(LaserScan, 'roboworks/scan', self.callbackLaser, 1)
         self.first_run=True
         self.prev_steering_err = 0.0
         self.prev_velocity = 0.0
         self.trans = Transform()
-        self.marker_points = Marker()
-        self.marker_points.header.frame_id = "roboworks/lidar_link"
-        self.marker_points.type = Marker.SPHERE_LIST
-        self.marker_points.action = Marker.MODIFY
-        self.marker_points.color.r = 0.0
-        self.marker_points.color.g = 0.0
-        self.marker_points.color.a = 1.0
-        self.marker_points.color.b = 1.0
-        self.marker_points.scale.x = 0.4
-        self.marker_points.scale.y = 0.4
-        self.marker_points.scale.z = 0.4
-        self.marker_points.pose.orientation.x = 0.0
-        self.marker_points.pose.orientation.y = 0.0
-        self.marker_points.pose.orientation.z = 0.0
-        self.marker_points.pose.orientation.w = 1.0
-        self.marker_points_1 = Marker()
-        self.marker_points_1.header.frame_id = "roboworks/lidar_link"
-        self.marker_points_1.type = Marker.SPHERE_LIST
-        self.marker_points_1.action = Marker.MODIFY
-        self.marker_points_1.color.r = 1.0
-        self.marker_points_1.color.g = 0.0
-        self.marker_points_1.color.a = 1.0
-        self.marker_points_1.color.b = 0.0
-        self.marker_points_1.scale.x = 0.4
-        self.marker_points_1.scale.y = 0.4
-        self.marker_points_1.scale.z = 0.4
-        self.marker_points_1.pose.orientation.x = 0.0
-        self.marker_points_1.pose.orientation.y = 0.0
-        self.marker_points_1.pose.orientation.z = 0.0
-        self.marker_points_1.pose.orientation.w = 1.0
+        self.debugMarkerArray = MarkerArray()
+        self.marker_points_left = Marker()
+        self.marker_points_left.header.frame_id = "roboworks/lidar_link"
+        self.marker_points_left.type = Marker.SPHERE_LIST
+        self.marker_points_left.action = Marker.MODIFY
+        self.marker_points_left.color.r = 0.0
+        self.marker_points_left.color.g = 0.2
+        self.marker_points_left.color.b = 0.8
+        self.marker_points_left.color.a = 1.0
+        self.marker_points_left.scale.x = 0.4
+        self.marker_points_left.scale.y = 0.4
+        self.marker_points_left.scale.z = 0.4
+        self.marker_points_left.pose.orientation.x = 0.0
+        self.marker_points_left.pose.orientation.y = 0.0
+        self.marker_points_left.pose.orientation.z = 0.0
+        self.marker_points_left.pose.orientation.w = 1.0
+        self.marker_points_left.ns = "left"
+        self.marker_points_right = Marker()
+        self.marker_points_right.header.frame_id = "roboworks/lidar_link"
+        self.marker_points_right.type = Marker.SPHERE_LIST
+        self.marker_points_right.action = Marker.MODIFY
+        self.marker_points_right.color.r = 1.0
+        self.marker_points_right.color.g = 0.0
+        self.marker_points_right.color.a = 1.0
+        self.marker_points_right.color.b = 0.0
+        self.marker_points_right.scale.x = 0.4
+        self.marker_points_right.scale.y = 0.4
+        self.marker_points_right.scale.z = 0.4
+        self.marker_points_right.pose.orientation.x = 0.0
+        self.marker_points_right.pose.orientation.y = 0.0
+        self.marker_points_right.pose.orientation.z = 0.0
+        self.marker_points_right.pose.orientation.w = 1.0
+        self.marker_points_right.ns = "right"
+        self.marker_points_goal = Marker()
+        self.marker_points_goal.header.frame_id = "roboworks/lidar_link"
+        self.marker_points_goal.type = Marker.SPHERE_LIST
+        self.marker_points_goal.action = Marker.MODIFY
+        self.marker_points_goal.color.r = 0.6
+        self.marker_points_goal.color.g = 0.2
+        self.marker_points_goal.color.b = 0.5
+        self.marker_points_goal.color.a = 1.0
+        self.marker_points_goal.scale.x = 0.4
+        self.marker_points_goal.scale.y = 0.4
+        self.marker_points_goal.scale.z = 0.4
+        self.marker_points_goal.pose.orientation.x = 0.0
+        self.marker_points_goal.pose.orientation.y = 0.0
+        self.marker_points_goal.pose.orientation.z = 0.0
+        self.marker_points_goal.pose.orientation.w = 1.0
+        self.marker_points_goal.ns = "goal"
+
         self.first_run = True
         self.buf = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.buf, self)
@@ -100,17 +119,20 @@ class SimplePursuit(Node):
                         max_x = point.x  
             if math.isinf(max_x):
                 max_x = -5.0
-            if max_x < 0.7:
-                max_x = -0.5
+            if max_x < 1.2:
+                max_x = 1.2
             distance = max_x
         else: 
             distance=0.4
-        return distance
+        return distance * 0.8
 
     def getAngle(self, ranges, angles):
+        # empty arrays to store the points
+        self.marker_points_left.points = []
+        self.marker_points_right.points = []
         if len(ranges) > 50:
-            left1_min_index = np.where(math.radians(30) < angles)[0][0]
-            left1_max_index = np.where(math.radians(60) < angles)[0][0]
+            left1_min_index = np.where(math.radians(10) < angles)[0][0]
+            left1_max_index = np.where(math.radians(40) < angles)[0][0]
             tmp_left = np.arange(left1_min_index, left1_max_index, 1)
             
             left_d = -10.0
@@ -120,10 +142,10 @@ class SimplePursuit(Node):
                 if not math.isinf(point.y):
                     if left_d < point.y:
                         left_d = point.y
-                self.marker_points.points.append(point)
+                self.marker_points_left.points.append(point)
             
-            right1_min_index = np.where(math.radians(-60) < angles)[0][0]
-            right1_max_index = np.where(math.radians(-30) < angles)[0][0]
+            right1_min_index = np.where(math.radians(-40) < angles)[0][0]
+            right1_max_index = np.where(math.radians(-10) < angles)[0][0]
             tmp_right = np.arange(right1_min_index, right1_max_index, 1)
             
             right_d = 10.0
@@ -133,8 +155,8 @@ class SimplePursuit(Node):
                 
                 if not math.isinf(point.y):
                     if point.y < right_d:
-                        right_d = -point.y
-                self.marker_points_1.points.append(point)
+                        right_d = point.y
+                self.marker_points_right.points.append(point)
             angle = (left_d + right_d) / 2
             if math.isinf(right_d):
                 right_d = 99.0
@@ -165,34 +187,44 @@ class SimplePursuit(Node):
         point_st = PointStamped()
         point_st.point = point
         try:
-            point_base_link_frame = tf2_geometry_msgs.do_transform_point(point_st, self.trans)
-            print("transformed point", point_base_link_frame)
-            point_base_link_frame.point.x *= -0.1
-            self.marker_points.points.append(point_base_link_frame.point)
+            point_base_link_frame = point_st #tf2_geometry_msgs.do_transform_point(point_st, self.trans)
+            # print("transformed point", point_base_link_frame)
+            # point_base_link_frame.point.x *= -0.1
+            # empty arrays to store the points
+            self.marker_points_goal.points = []
+            self.marker_points_goal.points.append(point_base_link_frame.point)
         except:
-            print("Error in transforming point")
+            # print("Error in transforming point")
             pass
 
-        self.marker_pub_left.publish(self.marker_points)
-        self.marker_pub_right.publish(self.marker_points_1)
+
+        self.debugMarkerArray.markers.append(self.marker_points_left)
+        self.debugMarkerArray.markers.append(self.marker_points_right)
+        self.debugMarkerArray.markers.append(self.marker_points_goal)
+        self.debug_marker_pub.publish(self.debugMarkerArray)
+
         messageS1.data += "\ntarget_angle: %.1f" % (target_angle)
-        messageS1.data += "\nr: %.1f l: %.1f" % (right_d, left_d) 
+        messageS1.data += "\nl: %.1f r: %.1f " % (left_d, right_d) 
         messageS1.data += "\ntarget_distance: %.1f" % (target_distance)
-        velocity = -1.0 * target_distance
+        velocity = 1.0 * target_distance
         
         try:
             steering_err = self.calcPursuitAngle(point_base_link_frame.point.x, point_base_link_frame.point.y)
         except:
             steering_err = self.calcPursuitAngle(1, -1)
+            rclpy.get_logger().warn("Error in calcPursuitAngle")
             
         messageS1.data += "\nsteer: %.1f" % (steering_err)
         messageS1.data += "\nvelocity: %.1f" % (velocity)
+
+        # print("\nl: %.1f r: %.1f s: %.2f t: %.2f" % (left_d, right_d, steering_err, target_angle))
+
         self.pubst1.publish(messageS1)
-        self.marker_points.points = []
-        self.marker_points_1.points = []
+        self.marker_points_left.points = []
+        self.marker_points_right.points = []
         
         steering_err = (steering_err + self.prev_steering_err) / 2
-        velocity = (velocity + self.prev_velocity) / 2
+        # velocity = (velocity + self.prev_velocity) / 2
         self.prev_steering_err = steering_err
         self.prev_velocity = velocity
         return steering_err, velocity
@@ -200,8 +232,8 @@ class SimplePursuit(Node):
     def callbackLaser(self, data):
         error_steering, velocity = self.followSimple(data)
         msg_cmd = Twist()
-        msg_cmd.linear.x = velocity * -0.5
-        msg_cmd.angular.z = error_steering
+        msg_cmd.linear.x = velocity * 0.3
+        msg_cmd.angular.z = error_steering * 4.8
         self.pub.publish(msg_cmd)
 
     def timer_callback(self):

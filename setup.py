@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 from glob import glob
 import os
 
-package_name = 'pid_controller'
+package_name = 'megoldas_sim24'
 
 setup(
     name=package_name,
@@ -23,11 +23,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            # 'control_vehicle = pid_controller.control_vehicle:main',
-            'pid_error.py = pid_controller.pid_error:main',
-            'control.py = pid_controller.control:main',
-            'simple_pursuit.py = pid_controller.simple_pursuit:main',
-            'test.py = pid_controller.test:main'
+            'simple_pursuit.py = megoldas_sim24.simple_pursuit:main',
         ],
     },
 )
