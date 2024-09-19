@@ -42,14 +42,15 @@ class SimplePursuit(Node):
         self.pubst2 = self.create_publisher(String, 'kozepiskola', 10)
         self.marker_pub_left = self.create_publisher(Marker, '/debug_marker_left', 1)
         self.marker_pub_right = self.create_publisher(Marker, '/debug_marker_right', 1)
-
+        self.path_marker_pub = self.create_publisher(Marker, '/path_marker', 1)  # New publisher for path marker
     def init_subscribers(self):
         self.sub = self.create_subscription(LaserScan, 'roboworks/scan', self.callbackLaser, 1)
 
     def init_markers(self):
         self.marker_points = self.create_marker(0.0, 0.0, 1.0)
         self.marker_points_1 = self.create_marker(1.0, 0.0, 0.0)
-
+        self.path_marker = self.create_path_marker(0.0, 1.0, 0.0)  # Initialize path marker
+        
     def create_marker(self, r, g, b):
         marker = Marker()
         marker.header.frame_id = "roboworks/lidar_link"
@@ -64,7 +65,19 @@ class SimplePursuit(Node):
         marker.scale.z = 0.4
         marker.pose.orientation.w = 1.0
         return marker
-
+    
+    def create_path_marker(self, r, g, b):
+        marker = Marker()
+        marker.header.frame_id = "roboworks/lidar_link"
+        marker.type = Marker.LINE_STRIP
+        marker.action = Marker.ADD
+        marker.color.r = r
+        marker.color.g = g
+        marker.color.b = b
+        marker.color.a = 1.0
+        marker.scale.x = 5.0  # Line width
+        return marker
+    
     def init_tf2(self):
         self.buf = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.buf, self)
@@ -152,25 +165,35 @@ class SimplePursuit(Node):
 
         point = Point(x=target_distance, y=target_angle)
         point_st = PointStamped(point=point)
+        point_base_link_frame = None
+        
         try:
             point_base_link_frame = tf2_geometry_msgs.do_transform_point(point_st, self.trans)
             point_base_link_frame.point.x *= -0.1
             self.marker_points.points.append(point_base_link_frame.point)
+            self.path_marker.points.append(point_base_link_frame.point)  # Update path marker
+            
         except:
             self.get_logger().error("Error in transforming point")
 
         self.publish_markers()
-        self.update_message(messageS1, target_angle, left_d, right_d, target_distance, point_base_link_frame)
+        if point_base_link_frame:
+            self.update_message(messageS1, target_angle, left_d, right_d, target_distance, point_base_link_frame)
         self.pubst1.publish(messageS1)
 
-        steering_err, velocity = self.calculate_control(point_base_link_frame)
+        if point_base_link_frame:
+            steering_err, velocity = self.calculate_control(point_base_link_frame)
+        else:
+            steering_err, velocity = 0.0, 0.0  
         return steering_err, velocity
 
     def publish_markers(self):
         self.marker_pub_left.publish(self.marker_points)
         self.marker_pub_right.publish(self.marker_points_1)
+        self.path_marker_pub.publish(self.path_marker)  # Publish path marker
         self.marker_points.points = []
         self.marker_points_1.points = []
+        self.path_marker.points = []  # Clear path marker points for next update
 
     def update_message(self, message, target_angle, left_d, right_d, target_distance, point_base_link_frame):
         message.data += f"\ntarget_angle: {target_angle:.1f}"
