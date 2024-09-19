@@ -38,7 +38,7 @@ class SimplePursuit(Node):
 
     def init_publishers(self):
         self.pub = self.create_publisher(Twist, 'roboworks/cmd_vel', 1)
-        self.pubst1 = self.create_publisher(String, 'pid_data', 10)
+        self.pubst1 = self.create_publisher(String, 'control_state', 10)
         self.pubst2 = self.create_publisher(String, 'kozepiskola', 10)
         self.marker_pub_left = self.create_publisher(Marker, '/debug_marker_left', 1)
         self.marker_pub_right = self.create_publisher(Marker, '/debug_marker_right', 1)
