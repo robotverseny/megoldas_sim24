@@ -165,7 +165,7 @@ class SimplePursuit(Node):
         if point_base_link_frame:
             steering_err, velocity = self.calculate_control(point_base_link_frame)
         else:
-            steering_err, velocity = 0.0, 0.0  
+            steering_err, velocity = 0.0, 0.0  ####
         return steering_err, velocity
 
     def publish_markers(self):
@@ -184,7 +184,7 @@ class SimplePursuit(Node):
         except:
             steering_err = self.calcPursuitAngle(1, -1)
         message.data += f"\nsteer: {steering_err:.1f}"
-        message.data += f"\nvelocity: {-1.0 * target_distance:.1f}"
+        message.data += f"\nvelocity: {target_distance:.1f}"
 
     def calculate_control(self, point_base_link_frame):
         try:
