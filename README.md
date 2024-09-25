@@ -13,11 +13,6 @@ cd ~/ros2_ws/src
 git clone https://github.com/robotverseny/megoldas_sim24
 ```
 
-## Rviz 2d overlay
-
-``` r
-sudo apt install ros-humble-rviz-2d-overlay*
-```
 
 ### Build ROS 2 packages
 ``` r
