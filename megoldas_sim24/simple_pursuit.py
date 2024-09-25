@@ -1,15 +1,10 @@
-'''
-based on 2018 Varundev Suresh Babu (University of Virginia)
-                MIT License
-'''
-
 import math
 import numpy as np
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist, Point, PointStamped, Transform
-from visualization_msgs.msg import Marker
+from visualization_msgs.msg import MarkerArray, Marker
 from std_msgs.msg import String
 import tf2_ros
 import tf2_geometry_msgs
@@ -40,20 +35,20 @@ class SimplePursuit(Node):
         self.pub = self.create_publisher(Twist, 'roboworks/cmd_vel', 1)
         self.pubst1 = self.create_publisher(String, 'control_state', 10)
         self.pubst2 = self.create_publisher(String, 'kozepiskola', 10)
-        self.marker_pub_left = self.create_publisher(Marker, '/debug_marker_left', 1)
-        self.marker_pub_right = self.create_publisher(Marker, '/debug_marker_right', 1)
-        self.path_marker_pub = self.create_publisher(Marker, '/path_marker', 1)  # New publisher for path marker
+        self.debug_marker_pub = self.create_publisher(MarkerArray, '/debug_marker', 1)
+
     def init_subscribers(self):
         self.sub = self.create_subscription(LaserScan, 'roboworks/scan', self.callbackLaser, 1)
 
     def init_markers(self):
-        self.marker_points = self.create_marker(0.0, 0.0, 1.0)
-        self.marker_points_1 = self.create_marker(1.0, 0.0, 0.0)
-        self.path_marker = self.create_path_marker(0.0, 1.0, 0.0)  # Initialize path marker
-        
-    def create_marker(self, r, g, b):
+        self.marker_points_left = self.create_marker(0.0, 0.2, 0.8, "left")
+        self.marker_points_right = self.create_marker(1.0, 0.0, 0.0, "right")
+        self.marker_points_goal = self.create_marker(0.6, 0.2, 0.5, "goal")
+        self.debugMarkerArray = MarkerArray()
+
+    def create_marker(self, r, g, b, ns):
         marker = Marker()
-        marker.header.frame_id = "roboworks/lidar_link"
+        marker.header.frame_id = "map_roboworks"
         marker.type = Marker.SPHERE_LIST
         marker.action = Marker.MODIFY
         marker.color.r = r
@@ -64,20 +59,9 @@ class SimplePursuit(Node):
         marker.scale.y = 0.4
         marker.scale.z = 0.4
         marker.pose.orientation.w = 1.0
+        marker.ns = ns
         return marker
-    
-    def create_path_marker(self, r, g, b):
-        marker = Marker()
-        marker.header.frame_id = "roboworks/lidar_link"
-        marker.type = Marker.LINE_STRIP
-        marker.action = Marker.ADD
-        marker.color.r = r
-        marker.color.g = g
-        marker.color.b = b
-        marker.color.a = 1.0
-        marker.scale.x = 5.0  # Line width
-        return marker
-    
+
     def init_tf2(self):
         self.buf = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.buf, self)
@@ -123,8 +107,8 @@ class SimplePursuit(Node):
         if len(ranges) <= 50:
             return 0.0, -99.0, 99.0
 
-        left_d = self.get_side_distance(ranges, angles, 30, 60, self.marker_points)
-        right_d = self.get_side_distance(ranges, angles, -60, -30, self.marker_points_1, invert=True)
+        left_d = self.get_side_distance(ranges, angles, 30, 60, self.marker_points_left)
+        right_d = self.get_side_distance(ranges, angles, -60, -30, self.marker_points_right, invert=True)
 
         angle = (left_d + right_d) / 2
         if math.isinf(right_d):
@@ -169,9 +153,7 @@ class SimplePursuit(Node):
         
         try:
             point_base_link_frame = tf2_geometry_msgs.do_transform_point(point_st, self.trans)
-            point_base_link_frame.point.x *= -0.1
-            self.marker_points.points.append(point_base_link_frame.point)
-            self.path_marker.points.append(point_base_link_frame.point)  # Update path marker
+            self.marker_points_goal.points.append(point_base_link_frame.point)
             
         except:
             self.get_logger().error("Error in transforming point")
@@ -188,12 +170,11 @@ class SimplePursuit(Node):
         return steering_err, velocity
 
     def publish_markers(self):
-        self.marker_pub_left.publish(self.marker_points)
-        self.marker_pub_right.publish(self.marker_points_1)
-        self.path_marker_pub.publish(self.path_marker)  # Publish path marker
-        self.marker_points.points = []
-        self.marker_points_1.points = []
-        self.path_marker.points = []  # Clear path marker points for next update
+        self.debugMarkerArray.markers = [self.marker_points_left, self.marker_points_right, self.marker_points_goal]
+        self.debug_marker_pub.publish(self.debugMarkerArray)
+        self.marker_points_left.points = []
+        self.marker_points_right.points = []
+        self.marker_points_goal.points = []
 
     def update_message(self, message, target_angle, left_d, right_d, target_distance, point_base_link_frame):
         message.data += f"\ntarget_angle: {target_angle:.1f}"
@@ -213,7 +194,7 @@ class SimplePursuit(Node):
             steering_err = self.calcPursuitAngle(1, -1)
 
         steering_err = (steering_err + self.prev_steering_err) / 2
-        velocity = (-1.0 * point_base_link_frame.point.x + self.prev_velocity) / 2
+        velocity = (point_base_link_frame.point.x + self.prev_velocity) / 2
         self.prev_steering_err = steering_err
         self.prev_velocity = velocity
         return steering_err, velocity
@@ -228,10 +209,10 @@ class SimplePursuit(Node):
     def timer_callback(self):
         if self.first_run:
             try:
-                self.trans = self.buf.lookup_transform('roboworks/odom', 'roboworks/lidar_link', rclpy.time.Time())
+                self.trans = self.buf.lookup_transform('map_roboworks', 'lidar_link', rclpy.time.Time())
                 self.first_run = False
             except tf2_ros.TransformException as ex:
-                self.get_logger().info(f'Could not transform {"roboworks/odom"} to {"roboworks/lidar_link"}: {ex}')
+                self.get_logger().info(f'Could not transform {"map_roboworks"} to {"lidar_link"}: {ex}')
                 self.set_default_transform()
         self.pubst2.publish(String(data=f"{KOZEPISKOLA_NEVE} ({KOZEPISKOLA_AZON})"))
 

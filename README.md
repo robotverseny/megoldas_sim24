@@ -37,3 +37,10 @@ ros2 launch megoldas_sim24 megoldas1.launch.py
 ``` r
 ros2 run megoldas_sim24 simple_pursuit.py
 ```
+
+> [!WARNING]  
+> If you see SetuptoolsDeprecationWarning: setup.py install is deprecated
+> here is a temporary solution 
+> ```bash 
+> pip install setuptools==58.2.0
+
