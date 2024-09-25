@@ -108,8 +108,7 @@ class SimplePursuit(Node):
             return 0.0, -99.0, 99.0
 
         left_d = self.get_side_distance(ranges, angles, 30, 60, self.marker_points_left)
-        right_d = self.get_side_distance(ranges, angles, -60, -30, self.marker_points_right, invert=True)
-
+        right_d = self.get_side_distance(ranges, angles, -60, -30, self.marker_points_right)
         angle = (left_d + right_d) / 2
         if math.isinf(right_d):
             right_d = 99.0
