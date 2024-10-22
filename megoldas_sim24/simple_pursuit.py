@@ -9,6 +9,7 @@ from std_msgs.msg import String
 import tf2_ros
 import tf2_geometry_msgs
 
+
 KOZEPISKOLA_NEVE = "Ismeretlen kozepiskola"
 KOZEPISKOLA_AZON = "A00"
 ANGLE_RANGE = 360  # LSN10 LIDAR has 360 degrees scan
@@ -17,9 +18,12 @@ DESIRED_DISTANCE_LEFT = 0.8  # meters
 VELOCITY = 1.00  # meters per second
 CAR_LENGTH = 0.445  # meters
 WHEELBASE = 0.3187  # meters
+MAP_FRAME = 'odom_combined'
+LASER_FRAME = 'laser'
 
 class SimplePursuit(Node):
     def __init__(self):
+        global KOZEPISKOLA_NEVE, KOZEPISKOLA_AZON, ANGLE_RANGE, DESIRED_DISTANCE_RIGHT, DESIRED_DISTANCE_LEFT, VELOCITY, CAR_LENGTH, WHEELBASE, MAP_FRAME, LASER_FRAME
         super().__init__('simple_pursuit')
         self.init_publishers()
         self.init_subscribers()
@@ -30,15 +34,38 @@ class SimplePursuit(Node):
         self.prev_velocity = 0.0
         self.trans = Transform()
         self.timer = self.create_timer(1.0, self.timer_callback)
+        ## ROS2 parameters
+        self.declare_parameter('kozepiskola_neve', KOZEPISKOLA_NEVE)
+        self.declare_parameter('kozepiskola_azon', KOZEPISKOLA_AZON)
+        self.declare_parameter('angle_range', ANGLE_RANGE)
+        self.declare_parameter('desired_distance_right', DESIRED_DISTANCE_RIGHT)
+        self.declare_parameter('desired_distance_left', DESIRED_DISTANCE_LEFT)
+        self.declare_parameter('velocity', VELOCITY)
+        self.declare_parameter('car_length', CAR_LENGTH)
+        self.declare_parameter('wheelbase', WHEELBASE)
+        self.declare_parameter('map_frame', MAP_FRAME)
+        self.declare_parameter('laser_frame', LASER_FRAME)
+        # ## ROS2 parameters
+        KOZEPISKOLA_NEVE = self.get_parameter('kozepiskola_neve').get_parameter_value().string_value
+        KOZEPISKOLA_AZON = self.get_parameter('kozepiskola_azon').get_parameter_value().string_value
+        ANGLE_RANGE = self.get_parameter('angle_range').get_parameter_value().integer_value
+        DESIRED_DISTANCE_RIGHT = self.get_parameter('desired_distance_right').get_parameter_value().double_value
+        DESIRED_DISTANCE_LEFT = self.get_parameter('desired_distance_left').get_parameter_value().double_value
+        VELOCITY = self.get_parameter('velocity').get_parameter_value().double_value
+        CAR_LENGTH = self.get_parameter('car_length').get_parameter_value().double_value
+        WHEELBASE = self.get_parameter('wheelbase').get_parameter_value().double_value
+        MAP_FRAME = self.get_parameter('map_frame').get_parameter_value().string_value
+        LASER_FRAME = self.get_parameter('laser_frame').get_parameter_value().string_value
+        self.get_logger().info("Simple Pursuit node has been started")
 
     def init_publishers(self):
-        self.pub = self.create_publisher(Twist, 'roboworks/cmd_vel', 1)
+        self.pub = self.create_publisher(Twist, 'cmd_vel', 1)
         self.pubst1 = self.create_publisher(String, 'control_state', 10)
         self.pubst2 = self.create_publisher(String, 'kozepiskola', 10)
         self.debug_marker_pub = self.create_publisher(MarkerArray, '/debug_marker', 1)
 
     def init_subscribers(self):
-        self.sub = self.create_subscription(LaserScan, 'roboworks/scan', self.callbackLaser, 1)
+        self.sub = self.create_subscription(LaserScan, '/scan', self.callbackLaser, 1)
 
     def init_markers(self):
         self.marker_points_left = self.create_marker(0.0, 0.2, 0.8, "left")
@@ -48,7 +75,7 @@ class SimplePursuit(Node):
 
     def create_marker(self, r, g, b, ns):
         marker = Marker()
-        marker.header.frame_id = "map_roboworks"
+        marker.header.frame_id = "odom_combined"
         marker.type = Marker.SPHERE_LIST
         marker.action = Marker.MODIFY
         marker.color.r = r
@@ -208,10 +235,10 @@ class SimplePursuit(Node):
     def timer_callback(self):
         if self.first_run:
             try:
-                self.trans = self.buf.lookup_transform('map_roboworks', 'lidar_link', rclpy.time.Time())
+                self.trans = self.buf.lookup_transform(MAP_FRAME, LASER_FRAME, rclpy.time.Time())
                 self.first_run = False
             except tf2_ros.TransformException as ex:
-                self.get_logger().info(f'Could not transform {"map_roboworks"} to {"lidar_link"}: {ex}')
+                self.get_logger().info('Could not transform {"'+ MAP_FRAME + '"} to {"' + LASER_FRAME + '"}: {ex}') 
                 self.set_default_transform()
         self.pubst2.publish(String(data=f"{KOZEPISKOLA_NEVE} ({KOZEPISKOLA_AZON})"))
 

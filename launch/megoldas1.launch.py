@@ -6,7 +6,20 @@ def generate_launch_description():
         Node(
             package='megoldas_sim24',
             executable='simple_pursuit.py',
-            output='screen'
+            output='screen',
+            parameters=[
+                {
+                    'kozepiskola_neve': "Nem definialt kozepiskola",
+                    'kozepiskola_azonosito': "A00",
+                    'angle_range': 360,
+                    'velocity': 1.00,
+                    'car_length': 0.445,
+                    'wheelbase': 0.3187,
+                    'map_frame': 'odom_combined',
+                    'laser_frame': 'laser',
+                }
+            ]
+
         ),
         
         # actions.ExecuteProcess(
