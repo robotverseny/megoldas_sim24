@@ -20,10 +20,11 @@ CAR_LENGTH = 0.445  # meters
 WHEELBASE = 0.3187  # meters
 MAP_FRAME = 'odom_combined'
 LASER_FRAME = 'laser'
+BASE_LINK_FRAME = 'base_link'
 
 class SimplePursuit(Node):
     def __init__(self):
-        global KOZEPISKOLA_NEVE, KOZEPISKOLA_AZON, ANGLE_RANGE, DESIRED_DISTANCE_RIGHT, DESIRED_DISTANCE_LEFT, VELOCITY, CAR_LENGTH, WHEELBASE, MAP_FRAME, LASER_FRAME
+        global KOZEPISKOLA_NEVE, KOZEPISKOLA_AZON, ANGLE_RANGE, DESIRED_DISTANCE_RIGHT, DESIRED_DISTANCE_LEFT, VELOCITY, CAR_LENGTH, WHEELBASE, MAP_FRAME, LASER_FRAME, BASE_LINK_FRAME
         super().__init__('simple_pursuit')
         self.init_publishers()
         self.init_subscribers()
@@ -45,6 +46,7 @@ class SimplePursuit(Node):
         self.declare_parameter('wheelbase', WHEELBASE)
         self.declare_parameter('map_frame', MAP_FRAME)
         self.declare_parameter('laser_frame', LASER_FRAME)
+        self.declare_parameter('base_link_frame', BASE_LINK_FRAME)
         # ## ROS2 parameters
         KOZEPISKOLA_NEVE = self.get_parameter('kozepiskola_neve').get_parameter_value().string_value
         KOZEPISKOLA_AZON = self.get_parameter('kozepiskola_azon').get_parameter_value().string_value
@@ -56,6 +58,7 @@ class SimplePursuit(Node):
         WHEELBASE = self.get_parameter('wheelbase').get_parameter_value().double_value
         MAP_FRAME = self.get_parameter('map_frame').get_parameter_value().string_value
         LASER_FRAME = self.get_parameter('laser_frame').get_parameter_value().string_value
+        BASE_LINK_FRAME = self.get_parameter('base_link_frame').get_parameter_value().string_value
         self.get_logger().info("Simple Pursuit node has been started")
 
     def init_publishers(self):
@@ -75,7 +78,7 @@ class SimplePursuit(Node):
 
     def create_marker(self, r, g, b, ns):
         marker = Marker()
-        marker.header.frame_id = "odom_combined"
+        marker.header.frame_id = LASER_FRAME
         marker.type = Marker.SPHERE_LIST
         marker.action = Marker.MODIFY
         marker.color.r = r
@@ -123,7 +126,7 @@ class SimplePursuit(Node):
         if max_x < 0.7:
             max_x = -0.5
 
-        return max_x
+        return max_x / 5.0
 
     def get_lookup_indices(self, angles, min_angle, max_angle):
         min_index = np.where(math.radians(min_angle) < angles)[0][0]
@@ -212,6 +215,7 @@ class SimplePursuit(Node):
             steering_err = self.calcPursuitAngle(1, -1)
         message.data += f"\nsteer: {steering_err:.1f}"
         message.data += f"\nvelocity: {target_distance:.1f}"
+        message.data += f"\nxy: {point_base_link_frame.point.x:.1f} {point_base_link_frame.point.y:.1f}"
 
     def calculate_control(self, point_base_link_frame):
         try:
@@ -228,17 +232,17 @@ class SimplePursuit(Node):
     def callbackLaser(self, data):
         error_steering, velocity = self.followSimple(data)
         msg_cmd = Twist()
-        msg_cmd.linear.x = velocity * -0.5
+        msg_cmd.linear.x = velocity * 0.5
         msg_cmd.angular.z = error_steering
         self.pub.publish(msg_cmd)
 
     def timer_callback(self):
         if self.first_run:
             try:
-                self.trans = self.buf.lookup_transform(MAP_FRAME, LASER_FRAME, rclpy.time.Time())
+                self.trans = self.buf.lookup_transform(BASE_LINK_FRAME, LASER_FRAME, rclpy.time.Time())
                 self.first_run = False
             except tf2_ros.TransformException as ex:
-                self.get_logger().info('Could not transform {"'+ MAP_FRAME + '"} to {"' + LASER_FRAME + '"}: {ex}') 
+                self.get_logger().warn('Could not transform {"'+ BASE_LINK_FRAME + '"} {"' + LASER_FRAME + '"}') 
                 self.set_default_transform()
         self.pubst2.publish(String(data=f"{KOZEPISKOLA_NEVE} ({KOZEPISKOLA_AZON})"))
 
