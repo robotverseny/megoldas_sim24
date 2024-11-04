@@ -24,6 +24,7 @@ setup(
     entry_points={
         'console_scripts': [
             'simple_pursuit.py = megoldas_sim24.simple_pursuit:main',
+            'follow_the_gap.py = megoldas_sim24.follow_the_gap:main',
             'joystick_teleop_node = megoldas_sim24.joystick_teleop:main',
         ],
     },
