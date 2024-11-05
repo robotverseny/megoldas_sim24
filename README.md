@@ -9,6 +9,8 @@ It is assumed that the workspace is `~/ros2_ws/`.
 
 ```bash
 cd ~/ros2_ws/src
+```
+```bash
 git clone https://github.com/robotverseny/megoldas_sim24
 ```
 
@@ -22,8 +24,12 @@ sudo apt install ros-humble-rviz-2d-overlay*
 
 ```bash
 cd ~/ros2_ws
+```
+```bash
 colcon build --packages-select megoldas_sim24 --symlink-install
 ```
+
+### Run the ROS 2 Packages
 
 <details>
 <summary>Don't forget to source before ROS commands.</summary>
@@ -35,8 +41,31 @@ source ~/ros2_ws/install/setup.bash
 
 ```bash
 ros2 launch megoldas_sim24 megoldas1.launch.py
+```
+```bash
 ros2 run megoldas_sim24 simple_pursuit.py
 ```
+```bash
+ros2 launch megoldas_sim24 megoldas2.launch.py
+```
+```bash
+ros2 run megoldas_sim24 follow_the_gap.py
+```
+
+### Run the simulator
+
+> [!TIP]
+> Use the `megoldas_sim24` package with the [`robotverseny_gazebo24`](https://github.com/robotverseny/robotverseny_gazebo24/) simulator.
+
+Build and run instructions of the simulator is described in the [`robotverseny_gazebo24`](https://github.com/robotverseny/robotverseny_gazebo24/) package.
+
+**After** the simulaton packages are built and sourced, you can start the simulator, e.g. with the following command:
+
+```bash
+ros2 launch robotverseny_bringup roboworks.launch.py rviz:=true
+```
+
+![simulator01](img/sim01.png)
 
 ## Joystick Teleop Launch
 

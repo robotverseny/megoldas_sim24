@@ -61,11 +61,34 @@ class FollowTheGapNode(Node):
         # Calculate the middle angle of the largest gap
         mid_index = (largest_gap[0] + largest_gap[1]) // 2
         best_angle = angle_min + mid_index * angle_increment
-        # TODO: Publish debug markers
-        # self.debug_marker_pub.publish(
-        # TODO: Extend 
+        # Create a marker for the center of the gap
+        marker_center = Marker()
+        marker_center.header.frame_id = "laser"
+        marker_center.ns = "follow_the_gap"
+        marker_center.id = 0
+        marker_center.type = Marker.SPHERE
+        marker_center.action = Marker.ADD
+        marker_center.pose.position.x = ranges[mid_index] * np.cos(best_angle)
+        marker_center.pose.position.y = ranges[mid_index] * np.sin(best_angle)
+        marker_center.pose.position.z = 0.0
+        marker_center.pose.orientation.x = 0.0; marker_center.pose.orientation.y = 0.0; marker_center.pose.orientation.z = 0.0; marker_center.pose.orientation.w = 1.0
+        marker_center.scale.x = 0.6; marker_center.scale.y = 0.6; marker_center.scale.z = 0.6
+        marker_center.color.a = 1.0
+        marker_center.color.r = 0.2
+        marker_center.color.g = 0.6
+        marker_center.color.b = 0.4
+        marker_array = MarkerArray()
+        # Add to the marker array and publish
+        marker_array.markers.append(marker_center)
+        self.debug_marker_pub.publish(marker_array)
+        # Publish control state as a string message
         messageS1 = String()
         messageS1.data = "Follow_the_gap"
+        messageS1.data += f"\nmid_index: {mid_index:.0f}"
+        # messageS1.data += f"\nbest_angle: {best_angle:.2f}"
+        messageS1.data += f"\nbest_angle (deg): {np.degrees(best_angle):.1f}"
+        messageS1.data += f"\nsteering_sentivity: {self.steering_sensitivity:.1f}"
+        self.pubst1.publish(messageS1)
         return best_angle
 
     def publish_drive_command(self, best_angle):
