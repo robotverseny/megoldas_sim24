@@ -8,6 +8,7 @@ from visualization_msgs.msg import MarkerArray, Marker
 from std_msgs.msg import String
 import tf2_ros
 import tf2_geometry_msgs
+import time
 
 
 KOZEPISKOLA_NEVE = "Ismeretlen kozepiskola"
@@ -31,6 +32,7 @@ class SimplePursuit(Node):
         self.init_markers()
         self.init_tf2()
         self.first_run = True
+        self.is_running = True
         self.prev_steering_err = 0.0
         self.prev_velocity = 0.0
         self.trans = Transform()
@@ -234,7 +236,8 @@ class SimplePursuit(Node):
         msg_cmd = Twist()
         msg_cmd.linear.x = velocity * 0.5
         msg_cmd.angular.z = error_steering
-        self.pub.publish(msg_cmd)
+        if (self.is_running):
+            self.pub.publish(msg_cmd)
 
     def timer_callback(self):
         if self.first_run:
@@ -255,12 +258,41 @@ class SimplePursuit(Node):
         self.trans.rotation.z = 0.999999682932
         self.trans.rotation.w = 0.000796326710733
 
+    def shutdown_node(self):
+        self.get_logger().info('Simple Pursuit shutdown procedure has been started')
+        self.is_running = False
+        # Publish a stop (0 speed) command before shutdown
+        try:   
+            twist_cmd = Twist()
+            twist_cmd.linear.x = 0.0
+            twist_cmd.angular.z = 0.0
+            self.pub.publish(twist_cmd)
+            # Wait 0.5 sec to make sure
+            time.sleep(0.5)
+            self.pub.publish(twist_cmd)
+            self.get_logger().info('Simple Pursuit node has been stopped')
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
 def main(args=None):
-    rclpy.init(args=args)
+    rclpy.init(signal_handler_options=rclpy.SignalHandlerOptions(2))
     node = SimplePursuit()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        try:
+            node.shutdown_node()
+            node.destroy_node()
+            rclpy.try_shutdown()
+        except Exception as e:
+            print(f"An error occurred: {e}")
+        node.destroy_node()
+        rclpy.try_shutdown()
+
+
+
 
 if __name__ == '__main__':
     main()

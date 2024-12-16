@@ -2,11 +2,13 @@
 
 import rclpy
 from rclpy.node import Node
+import rclpy.time
 from sensor_msgs.msg import LaserScan
 from std_msgs.msg import Float32, String
 from geometry_msgs.msg import Twist
 from visualization_msgs.msg import MarkerArray, Marker
 import numpy as np
+import time
 
 class FollowTheGapNode(Node):
     def __init__(self):
@@ -17,12 +19,14 @@ class FollowTheGapNode(Node):
         self.max_throttle = 0.5   # Maximum throttle value
         self.steering_sensitivity = -0.9  # Adjust sensitivity as needed
         self.max_steering_angle = 0.52   # Steering angle limit in radians
+        self.is_running = True
 
         # Subscribers and publishers
         self.scan_sub = self.create_subscription(LaserScan, '/scan', self.scan_callback, 10)
         self.debug_marker_pub = self.create_publisher(MarkerArray, '/debug_marker', 1)
         self.cmd_pub = self.create_publisher(Twist, 'cmd_vel', 1)
         self.pubst1 = self.create_publisher(String, 'control_state', 10)
+        self.timer1 = self.create_timer(0.1, self.timer_callback)
         self.get_logger().info('Follow the gap node has been started', once=True)
 
 
@@ -102,18 +106,45 @@ class FollowTheGapNode(Node):
         twist_cmd = Twist()
         twist_cmd.linear.x = throttle_value
         twist_cmd.angular.z = steering_value
-        self.cmd_pub.publish(twist_cmd)
+        if (self.is_running):
+            self.cmd_pub.publish(twist_cmd)
+
+    def timer_callback(self):
+        # This function is called periodically, currently does nothing just keeps the node alive
+        pass
+
+    def shutdown_node(self):
+        self.get_logger().info('Follow the gap shutdown procedure has been started')
+        self.is_running = False
+        # Publish a stop (0 speed) command before shutdown
+        try:   
+            twist_cmd = Twist()
+            twist_cmd.linear.x = 0.0
+            twist_cmd.angular.z = 0.0
+            self.cmd_pub.publish(twist_cmd)
+            # Wait 0.5 sec to make sure
+            time.sleep(0.5)
+            self.cmd_pub.publish(twist_cmd)
+            self.get_logger().info('Follow the gap node has been stopped')
+        except Exception as e:
+            print(f"An error occurred: {e}")
 
 def main(args=None):
-    rclpy.init(args=args)
+    rclpy.init(signal_handler_options=rclpy.SignalHandlerOptions(2))
     node = FollowTheGapNode()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
     finally:
+        try:
+            node.shutdown_node()
+            node.destroy_node()
+            rclpy.try_shutdown()
+        except Exception as e:
+            print(f"An error occurred: {e}")
         node.destroy_node()
-        rclpy.shutdown()
+        rclpy.try_shutdown()
 
 if __name__ == '__main__':
     main()
