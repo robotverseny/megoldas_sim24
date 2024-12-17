@@ -172,8 +172,8 @@ class SimplePursuit(Node):
         messageS1 = String()
         messageS1.data = "Simple_pursuit"
         angles = np.arange(data.angle_min, data.angle_max, data.angle_increment)
-        if len(angles) != len(data.ranges):
-            self.get_logger().warn("angles and ranges length differ")
+        if abs(len(angles) - len(data.ranges)) > 1: # due to inaccuracies of float32, +/-1 difference is OK 
+            self.get_logger().warn("angles and ranges length differ " + str(len(angles)) + " vs " + str(len(data.ranges)))
 
         target_distance = self.getDistance(data.ranges, angles)
         target_angle, left_d, right_d = self.getAngle(data.ranges, angles)
