@@ -5,6 +5,7 @@ from launch_ros.actions import Node
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.substitutions import FindPackageShare
 from launch.actions import IncludeLaunchDescription
+from ament_index_python.packages import get_package_share_directory, get_package_prefix
 
 def generate_launch_description():
     follow_the_gap = Node(
@@ -26,18 +27,23 @@ def generate_launch_description():
         ]
     )
 
-    # Get the path to the included launch file
-    package_share = FindPackageShare("megoldas_sim24").find("megoldas_sim24")
-    # print("----" + package_share)
-    launch_file_path = os.path.join(package_share, 'string_rviz_overlay.launch.py')
+    start_rviz_2d_overlay = False
 
-    str_overlay = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([
-        FindPackageShare("megoldas_sim24"), '/string_rviz_overlay.launch.py'])
-    )
+    # Check if the package exists
+    try:
+        package_path = get_package_prefix('rviz_2d_overlay_plugins')
 
-    # Check if the file exists #  TODO: this is not the best way to check, the launch may exist, but not working is still an issue
-    if os.path.exists(launch_file_path):
+        str_overlay = IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([
+            FindPackageShare("megoldas_sim24"), '/string_rviz_overlay.launch.py'])
+        )
+        start_rviz_2d_overlay = True
+    except:
+        print("rviz_2d_overlay_plugins package not found, skipping...")
+        start_rviz_2d_overlay = False
+
+
+    if start_rviz_2d_overlay:
         return LaunchDescription([
             follow_the_gap,
             str_overlay
@@ -46,5 +52,6 @@ def generate_launch_description():
         # Log or handle the case where the file does not exist
         return LaunchDescription([
             follow_the_gap,
-            LogInfo(msg="Error: string_rviz_overlay.launch.py not found")  # Log a message instead of crashing
+            LogInfo(msg="Error: rviz_2d_overlay_plugins not found, skipping"),  # Log a message instead of crashing
+            LogInfo(msg="Install: sudo apt install ros-humble-rviz-2d-overlay*"),
         ])
