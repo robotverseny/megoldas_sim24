@@ -10,24 +10,41 @@ from visualization_msgs.msg import MarkerArray, Marker
 import numpy as np
 import time
 
+KOZEPISKOLA_NEVE = "Ismeretlen kozepiskola"
+KOZEPISKOLA_AZON = "A99"
+
 class FollowTheGapNode(Node):
     def __init__(self):
+        global KOZEPISKOLA_NEVE, KOZEPISKOLA_AZON, debug
         super().__init__('follow_the_gap')
         
-        # Parameters
+        # Parameters # TODO: make them ROS2 parameters
         self.safety_radius = 2   # Minimum safe distance from obstacles
         self.max_throttle = 0.5   # Maximum throttle value
         self.steering_sensitivity = 0.7  # Adjust sensitivity as needed
         self.max_steering_angle = 0.52   # Steering angle limit in radians
         self.is_running = True
 
+        ## ROS2 parameters
+        self.declare_parameter('kozepiskola_neve', KOZEPISKOLA_NEVE)
+        self.declare_parameter('kozepiskola_azon', KOZEPISKOLA_AZON)
+        self.declare_parameter('debug', False)
+
+        # ## ROS2 parameters
+        KOZEPISKOLA_NEVE = self.get_parameter('kozepiskola_neve').get_parameter_value().string_value
+        KOZEPISKOLA_AZON = self.get_parameter('kozepiskola_azon').get_parameter_value().string_value
+        debug = self.get_parameter('debug').get_parameter_value().bool_value
+
+
         # Subscribers and publishers
         self.scan_sub = self.create_subscription(LaserScan, '/scan', self.scan_callback, 10)
         self.debug_marker_pub = self.create_publisher(MarkerArray, '/debug_marker', 1)
         self.cmd_pub = self.create_publisher(Twist, 'cmd_vel', 1)
         self.pubst1 = self.create_publisher(String, 'control_state', 10)
+        self.pubst2 = self.create_publisher(String, 'kozepiskola', 10)
         self.timer1 = self.create_timer(0.1, self.timer_callback)
         self.get_logger().info('Follow the gap node has been started', once=True)
+        self.get_logger().info('Debug mode: ' + str(debug), once=True)
 
 
     def scan_callback(self, scan_data):
@@ -81,8 +98,8 @@ class FollowTheGapNode(Node):
 
         # Convert to [-π, π] range
         best_angle = (best_angle + np.pi) % (2 * np.pi) - np.pi
-
-        self.get_logger().info("Largest gap: Start " + str(largest_gap[0]) + ", End " + str(largest_gap[1]) + ", Best Angle: " + str(np.degrees(best_angle)) + "°")
+        if debug:
+            self.get_logger().info("Largest gap: Start " + str(largest_gap[0]) + ", End " + str(largest_gap[1]) + ", Best Angle: " + str(np.degrees(best_angle)) + "°")
 
         # Create a marker for the center of the gap
         marker_center = Marker()
@@ -128,6 +145,7 @@ class FollowTheGapNode(Node):
         twist_cmd.angular.z = steering_value
         if (self.is_running):
             self.cmd_pub.publish(twist_cmd)
+        self.pubst2.publish(String(data=f"{KOZEPISKOLA_NEVE} ({KOZEPISKOLA_AZON})"))
 
     def timer_callback(self):
         # This function is called periodically, currently does nothing just keeps the node alive

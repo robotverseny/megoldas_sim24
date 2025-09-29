@@ -14,8 +14,9 @@ def generate_launch_description():
         output='screen',
         parameters=[
             {
-                # 'kozepiskola_neve': "Nem definialt kozepiskola",
-                # 'kozepiskola_azonosito': "A00",
+                'kozepiskola_neve': "Nem definialt kozepiskola",
+                'kozepiskola_azonosito': "A00",
+                'debug': False,
                 # 'angle_range': 360,
                 # 'velocity': 1.00,
                 # 'car_length': 0.445,

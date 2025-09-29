@@ -14,8 +14,6 @@ import time
 KOZEPISKOLA_NEVE = "Ismeretlen kozepiskola"
 KOZEPISKOLA_AZON = "A00"
 ANGLE_RANGE = 360  # LSN10 LIDAR has 360 degrees scan
-DESIRED_DISTANCE_RIGHT = 1.0  # meters
-DESIRED_DISTANCE_LEFT = 0.8  # meters
 VELOCITY = 1.00  # meters per second
 CAR_LENGTH = 0.445  # meters
 WHEELBASE = 0.3187  # meters
@@ -25,7 +23,7 @@ BASE_LINK_FRAME = 'base_link'
 
 class SimplePursuit(Node):
     def __init__(self):
-        global KOZEPISKOLA_NEVE, KOZEPISKOLA_AZON, ANGLE_RANGE, DESIRED_DISTANCE_RIGHT, DESIRED_DISTANCE_LEFT, VELOCITY, CAR_LENGTH, WHEELBASE, MAP_FRAME, LASER_FRAME, BASE_LINK_FRAME
+        global KOZEPISKOLA_NEVE, KOZEPISKOLA_AZON, ANGLE_RANGE, VELOCITY, CAR_LENGTH, WHEELBASE, MAP_FRAME, LASER_FRAME, BASE_LINK_FRAME
         super().__init__('simple_pursuit')
         self.init_publishers()
         self.init_subscribers()
@@ -41,8 +39,6 @@ class SimplePursuit(Node):
         self.declare_parameter('kozepiskola_neve', KOZEPISKOLA_NEVE)
         self.declare_parameter('kozepiskola_azon', KOZEPISKOLA_AZON)
         self.declare_parameter('angle_range', ANGLE_RANGE)
-        self.declare_parameter('desired_distance_right', DESIRED_DISTANCE_RIGHT)
-        self.declare_parameter('desired_distance_left', DESIRED_DISTANCE_LEFT)
         self.declare_parameter('velocity', VELOCITY)
         self.declare_parameter('car_length', CAR_LENGTH)
         self.declare_parameter('wheelbase', WHEELBASE)
@@ -53,8 +49,6 @@ class SimplePursuit(Node):
         KOZEPISKOLA_NEVE = self.get_parameter('kozepiskola_neve').get_parameter_value().string_value
         KOZEPISKOLA_AZON = self.get_parameter('kozepiskola_azon').get_parameter_value().string_value
         ANGLE_RANGE = self.get_parameter('angle_range').get_parameter_value().integer_value
-        DESIRED_DISTANCE_RIGHT = self.get_parameter('desired_distance_right').get_parameter_value().double_value
-        DESIRED_DISTANCE_LEFT = self.get_parameter('desired_distance_left').get_parameter_value().double_value
         VELOCITY = self.get_parameter('velocity').get_parameter_value().double_value
         CAR_LENGTH = self.get_parameter('car_length').get_parameter_value().double_value
         WHEELBASE = self.get_parameter('wheelbase').get_parameter_value().double_value
@@ -140,7 +134,7 @@ class SimplePursuit(Node):
             return 0.0, -99.0, 99.0
 
         left_d = self.get_side_distance(ranges, angles, 30, 60, self.marker_points_left)
-        right_d = self.get_side_distance(ranges, angles, -60, -30, self.marker_points_right)
+        right_d = self.get_side_distance(ranges, angles, 300, 330, self.marker_points_right) # 0-360°
         angle = (left_d + right_d) / 2
         if math.isinf(right_d):
             right_d = 99.0
