@@ -272,7 +272,7 @@ class SimplePursuit(Node):
             self.pub.publish(twist_cmd)
             self.get_logger().info('Simple Pursuit node has been stopped')
         except Exception as e:
-            print(f"An error occurred: {e}")
+            print(f"An error occurred: {e}") # print is OK here instead of self.get_logger().info
 
 def main(args=None):
     rclpy.init(signal_handler_options=rclpy.SignalHandlerOptions(2))
@@ -287,7 +287,7 @@ def main(args=None):
             node.destroy_node()
             rclpy.try_shutdown()
         except Exception as e:
-            print(f"An error occurred: {e}")
+            print(f"An error occurred: {e}") # print is OK here instead of self.get_logger().info
         node.destroy_node()
         rclpy.try_shutdown()
 
