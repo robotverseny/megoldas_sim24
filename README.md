@@ -1,6 +1,8 @@
 # `megoldas_sim24` package
 # ROS 2 Python Package [![Static Badge](https://img.shields.io/badge/ROS_2-Humble-34aec5)](https://docs.ros.org/en/humble/)
 
+![](https://raw.githubusercontent.com/jkk-research/jkk-research.github.io/refs/heads/master/docs/img/sim02.gif)
+
 ## Packages and Build
 
 It is assumed that the workspace is `~/ros2_ws/`.
