@@ -3,6 +3,8 @@
 import rclpy
 from rclpy.node import Node
 import rclpy.time
+from rclpy.parameter import Parameter
+from rcl_interfaces.msg import SetParametersResult
 from sensor_msgs.msg import LaserScan
 from std_msgs.msg import Float32, String
 from geometry_msgs.msg import Twist
@@ -15,26 +17,30 @@ KOZEPISKOLA_AZON = "A99"
 
 class FollowTheGapNode(Node):
     def __init__(self):
-        global KOZEPISKOLA_NEVE, KOZEPISKOLA_AZON, debug
         super().__init__('follow_the_gap')
-        
-        # Parameters # TODO: make them ROS2 parameters
-        self.safety_radius = 2   # Minimum safe distance from obstacles
-        self.max_throttle = 0.5   # Maximum throttle value
-        self.steering_sensitivity = 0.7  # Adjust sensitivity as needed
-        self.max_steering_angle = 0.52   # Steering angle limit in radians
-        self.is_running = True
 
-        ## ROS2 parameters
-        self.declare_parameter('kozepiskola_neve', KOZEPISKOLA_NEVE)
-        self.declare_parameter('kozepiskola_azon', KOZEPISKOLA_AZON)
+        # --- Declare ROS2 parameters ---
+        self.declare_parameter('kozepiskola_neve', "Ismeretlen kozepiskola")
+        self.declare_parameter('kozepiskola_azon', "A99")
         self.declare_parameter('debug', False)
+        self.declare_parameter('safety_radius', 2.0)
+        self.declare_parameter('max_throttle', 0.5)
+        self.declare_parameter('steering_sensitivity', 0.7)
+        self.declare_parameter('max_steering_angle', 0.52)
+        self.declare_parameter('is_running', True)
 
-        # ## ROS2 parameters
-        KOZEPISKOLA_NEVE = self.get_parameter('kozepiskola_neve').get_parameter_value().string_value
-        KOZEPISKOLA_AZON = self.get_parameter('kozepiskola_azon').get_parameter_value().string_value
-        debug = self.get_parameter('debug').get_parameter_value().bool_value
+        # --- Read parameter values ---
+        self.kozepiskola_neve = self.get_parameter('kozepiskola_neve').get_parameter_value().string_value
+        self.kozepiskola_azon = self.get_parameter('kozepiskola_azon').get_parameter_value().string_value
+        self.debug = self.get_parameter('debug').get_parameter_value().bool_value
+        self.safety_radius = self.get_parameter('safety_radius').get_parameter_value().double_value
+        self.max_throttle = self.get_parameter('max_throttle').get_parameter_value().double_value
+        self.steering_sensitivity = self.get_parameter('steering_sensitivity').get_parameter_value().double_value
+        self.max_steering_angle = self.get_parameter('max_steering_angle').get_parameter_value().double_value
+        self.is_running = self.get_parameter('is_running').get_parameter_value().bool_value
 
+        # --- Dynamic parameter callback ---
+        self.add_on_set_parameters_callback(self.on_param_change)
 
         # Subscribers and publishers
         self.scan_sub = self.create_subscription(LaserScan, '/scan', self.scan_callback, 10)
@@ -44,8 +50,27 @@ class FollowTheGapNode(Node):
         self.pubst2 = self.create_publisher(String, 'kozepiskola', 10)
         self.timer1 = self.create_timer(0.1, self.timer_callback)
         self.get_logger().info('Follow the gap node has been started', once=True)
-        self.get_logger().info('Debug mode: ' + str(debug), once=True)
+        self.get_logger().info(f'Debug mode: {self.debug}', once=True)
 
+    # --- Dynamic ROS2 parameter handler ---
+    def on_param_change(self, params):
+        for param in params:
+            if param.name == "steering_sensitivity" and param.type_ == Parameter.Type.DOUBLE:
+                self.steering_sensitivity = param.value
+                self.get_logger().info(f"Updated steering_sensitivity -> {self.steering_sensitivity}")
+            elif param.name == "safety_radius" and param.type_ == Parameter.Type.DOUBLE:
+                self.safety_radius = param.value
+                self.get_logger().info(f"Updated safety_radius -> {self.safety_radius}")
+            elif param.name == "max_throttle" and param.type_ == Parameter.Type.DOUBLE:
+                self.max_throttle = param.value
+                self.get_logger().info(f"Updated max_throttle -> {self.max_throttle}")
+            elif param.name == "max_steering_angle" and param.type_ == Parameter.Type.DOUBLE:
+                self.max_steering_angle = param.value
+                self.get_logger().info(f"Updated max_steering_angle -> {self.max_steering_angle}")
+            elif param.name == "debug" and param.type_ == Parameter.Type.BOOL:
+                self.debug = param.value
+                self.get_logger().info(f"Updated debug -> {self.debug}")
+        return SetParametersResult(successful=True)
 
     def scan_callback(self, scan_data):
         ranges = np.array(scan_data.ranges)
@@ -69,18 +94,13 @@ class FollowTheGapNode(Node):
         if len(safe_indices) == 0:
             return 0.0  # Keep driving straight
 
-        # Convert LiDAR angles to vehicle frame (flip by π)
         def normalize_angle(angle):
-            return (angle + np.pi) % (2 * np.pi) - np.pi  # Converts to [-π, π]
+            return (angle + np.pi) % (2 * np.pi) - np.pi
 
-
-        # Adjust safe indices to flip the angles
         safe_indices = [idx for idx in safe_indices if -np.pi/2 <= normalize_angle(angle_min + idx * angle_increment) <= np.pi/2]
-
         if len(safe_indices) == 0:
-            return 0.0  # No valid gap, drive straight
+            return 0.0
 
-        # Find gaps in the filtered range
         gaps = []
         gap_start = safe_indices[0]
         for i in range(1, len(safe_indices)):
@@ -89,21 +109,16 @@ class FollowTheGapNode(Node):
                 gap_start = safe_indices[i]
         gaps.append((gap_start, safe_indices[-1]))
 
-        # Select the largest gap
         largest_gap = max(gaps, key=lambda gap: gap[1] - gap[0])
-
-        # Compute the middle angle of the largest gap
         mid_index = (largest_gap[0] + largest_gap[1]) // 2
-        best_angle = normalize_angle(angle_min + mid_index * angle_increment)  # Flip the angle for backward LiDAR
-
-        # Convert to [-π, π] range
+        best_angle = normalize_angle(angle_min + mid_index * angle_increment)
         best_angle = (best_angle + np.pi) % (2 * np.pi) - np.pi
-        if debug:
-            self.get_logger().info("Largest gap: Start " + str(largest_gap[0]) + ", End " + str(largest_gap[1]) + ", Best Angle: " + str(np.degrees(best_angle)) + "°")
 
-        # Create a marker for the center of the gap
+        if self.debug:
+            self.get_logger().info(f"Largest gap: Start {largest_gap[0]}, End {largest_gap[1]}, Best Angle: {np.degrees(best_angle):.1f}°")
+
         marker_center = Marker()
-        marker_center.header.frame_id = "laser"
+        marker_center.header.frame_id = "odom_combined"
         marker_center.ns = "follow_the_gap"
         marker_center.id = 0
         marker_center.type = Marker.SPHERE
@@ -111,61 +126,52 @@ class FollowTheGapNode(Node):
         marker_center.pose.position.x = ranges[mid_index] * np.cos(best_angle)
         marker_center.pose.position.y = ranges[mid_index] * np.sin(best_angle)
         marker_center.pose.position.z = 0.0
-        marker_center.pose.orientation.x = 0.0; marker_center.pose.orientation.y = 0.0; marker_center.pose.orientation.z = 0.0; marker_center.pose.orientation.w = 1.0
-        marker_center.scale.x = 0.6; marker_center.scale.y = 0.6; marker_center.scale.z = 0.6
+        marker_center.pose.orientation.w = 1.0
+        marker_center.scale.x = 0.6
+        marker_center.scale.y = 0.6
+        marker_center.scale.z = 0.6
         marker_center.color.a = 1.0
         marker_center.color.r = 0.2
         marker_center.color.g = 0.6
         marker_center.color.b = 0.4
         marker_array = MarkerArray()
-        # Add to the marker array and publish
         marker_array.markers.append(marker_center)
         self.debug_marker_pub.publish(marker_array)
-        # Publish control state as a string message
+
         messageS1 = String()
         messageS1.data = "Follow_the_gap"
         messageS1.data += f"\nmid_index: {mid_index:.0f}"
-        # messageS1.data += f"\nbest_angle: {best_angle:.2f}"
         messageS1.data += f"\nbest_angle (deg): {np.degrees(best_angle):.1f}"
-        messageS1.data += f"\nsteering_sentivity: {self.steering_sensitivity:.1f}"
+        messageS1.data += f"\nsteering_sensitivity: {self.steering_sensitivity:.1f}"
         self.pubst1.publish(messageS1)
         return best_angle
 
-
     def publish_drive_command(self, best_angle):
-        # Throttle command (constant for simplicity)
         throttle_value = self.max_throttle
-        # self.throttle_pub.publish(throttle_msg)
-        
-        # Steering command, [-0.52, 0.52] range
         steering_value = best_angle * self.steering_sensitivity
-        # self.steering_pub.publish(steering_msg)
         twist_cmd = Twist()
         twist_cmd.linear.x = throttle_value
         twist_cmd.angular.z = steering_value
-        if (self.is_running):
+        if self.is_running:
             self.cmd_pub.publish(twist_cmd)
-        self.pubst2.publish(String(data=f"{KOZEPISKOLA_NEVE} ({KOZEPISKOLA_AZON})"))
+        self.pubst2.publish(String(data=f"{self.kozepiskola_neve} ({self.kozepiskola_azon})"))
 
     def timer_callback(self):
-        # This function is called periodically, currently does nothing just keeps the node alive
         pass
 
     def shutdown_node(self):
         self.get_logger().info('Follow the gap shutdown procedure has been started')
         self.is_running = False
-        # Publish a stop (0 speed) command before shutdown
-        try:   
+        try:
             twist_cmd = Twist()
             twist_cmd.linear.x = 0.0
             twist_cmd.angular.z = 0.0
             self.cmd_pub.publish(twist_cmd)
-            # Wait 0.5 sec to make sure
             time.sleep(0.5)
             self.cmd_pub.publish(twist_cmd)
             self.get_logger().info('Follow the gap node has been stopped')
         except Exception as e:
-            print(f"An error occurred: {e}") # print is OK here instead of self.get_logger().info 
+            print(f"An error occurred: {e}")
 
 def main(args=None):
     rclpy.init(signal_handler_options=rclpy.SignalHandlerOptions(2))
@@ -180,7 +186,7 @@ def main(args=None):
             node.destroy_node()
             rclpy.try_shutdown()
         except Exception as e:
-            print(f"An error occurred: {e}") # print is OK here instead of self.get_logger().info
+            print(f"An error occurred: {e}")
         node.destroy_node()
         rclpy.try_shutdown()
 
