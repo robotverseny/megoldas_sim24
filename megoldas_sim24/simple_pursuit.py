@@ -2,6 +2,7 @@ import math
 import numpy as np
 import rclpy
 from rclpy.node import Node
+from rclpy.parameter import Parameter
 from rcl_interfaces.msg import SetParametersResult
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist, Point, PointStamped, Transform
@@ -24,6 +25,7 @@ class SimplePursuit(Node):
         self.declare_parameter('map_frame', 'odom_combined')
         self.declare_parameter('laser_frame', 'laser')
         self.declare_parameter('base_link_frame', 'base_link')
+        self.declare_parameter('is_running', True)
 
         self.get_params()
         self.add_on_set_parameters_callback(self.parameters_callback)
@@ -33,12 +35,12 @@ class SimplePursuit(Node):
         self.init_markers()
         self.init_tf2()
         self.first_run = True
-        self.is_running = True
         self.prev_steering_err = 0.0
         self.prev_velocity = 0.0
         self.trans = Transform()
         self.timer = self.create_timer(1.0, self.timer_callback)
         self.get_logger().info("Simple Pursuit node has been started")
+        self.get_logger().info(f"velocity: {self.VELOCITY}, wheelbase: {self.WHEELBASE}, is_running: {self.is_running}")
 
     def get_params(self):
         self.KOZEPISKOLA_NEVE = self.get_parameter('kozepiskola_neve').get_parameter_value().string_value
@@ -50,17 +52,40 @@ class SimplePursuit(Node):
         self.MAP_FRAME = self.get_parameter('map_frame').get_parameter_value().string_value
         self.LASER_FRAME = self.get_parameter('laser_frame').get_parameter_value().string_value
         self.BASE_LINK_FRAME = self.get_parameter('base_link_frame').get_parameter_value().string_value
+        self.is_running = self.get_parameter('is_running').get_parameter_value().bool_value
 
     def parameters_callback(self, params):
         for param in params:
-            if param.name == 'kozepiskola_neve':
+            if param.name == 'kozepiskola_neve' and param.type_ == Parameter.Type.STRING:
                 self.KOZEPISKOLA_NEVE = param.value
-            elif param.name == 'kozepiskola_azon':
+                self.get_logger().info(f"Updated kozepiskola_neve -> {self.KOZEPISKOLA_NEVE}")
+            elif param.name == 'kozepiskola_azon' and param.type_ == Parameter.Type.STRING:
                 self.KOZEPISKOLA_AZON = param.value
-            elif param.name == 'velocity':
+                self.get_logger().info(f"Updated kozepiskola_azon -> {self.KOZEPISKOLA_AZON}")
+            elif param.name == 'angle_range' and param.type_ == Parameter.Type.INTEGER:
+                self.ANGLE_RANGE = param.value
+                self.get_logger().info(f"Updated angle_range -> {self.ANGLE_RANGE}")
+            elif param.name == 'velocity' and param.type_ == Parameter.Type.DOUBLE:
                 self.VELOCITY = param.value
-            elif param.name == 'wheelbase':
+                self.get_logger().info(f"Updated velocity -> {self.VELOCITY}")
+            elif param.name == 'car_length' and param.type_ == Parameter.Type.DOUBLE:
+                self.CAR_LENGTH = param.value
+                self.get_logger().info(f"Updated car_length -> {self.CAR_LENGTH}")
+            elif param.name == 'wheelbase' and param.type_ == Parameter.Type.DOUBLE:
                 self.WHEELBASE = param.value
+                self.get_logger().info(f"Updated wheelbase -> {self.WHEELBASE}")
+            elif param.name == 'map_frame' and param.type_ == Parameter.Type.STRING:
+                self.MAP_FRAME = param.value
+                self.get_logger().info(f"Updated map_frame -> {self.MAP_FRAME}")
+            elif param.name == 'laser_frame' and param.type_ == Parameter.Type.STRING:
+                self.LASER_FRAME = param.value
+                self.get_logger().info(f"Updated laser_frame -> {self.LASER_FRAME}")
+            elif param.name == 'base_link_frame' and param.type_ == Parameter.Type.STRING:
+                self.BASE_LINK_FRAME = param.value
+                self.get_logger().info(f"Updated base_link_frame -> {self.BASE_LINK_FRAME}")
+            elif param.name == 'is_running' and param.type_ == Parameter.Type.BOOL:
+                self.is_running = param.value
+                self.get_logger().info(f"Updated is_running -> {self.is_running}")
         return SetParametersResult(successful=True)
 
     def init_publishers(self):
